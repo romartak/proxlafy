@@ -20,16 +20,34 @@ an automatic WiFi hotspot and self-rollback updates.
 
 ## What it does
 
-- **Read** a card on the antenna (LF, HF or auto) and identify it: HID Prox, EM410x, Indala, T55x7,
-  MIFARE Classic/DESFire, iCLASS, NTAG/Ultralight…
-- **Library** — save each read with a name and notes; everything is stored on the Pi and survives updates.
-- **Emulate** — pick any saved card and the Proxmark emulates it; a banner shows what is live, one tap stops it.
-- **Write** — clone a saved LF credential onto a blank **T5577** (and HF onto magic cards where supported).
-- **From your phone** — the Pi serves an offline panel over its own WiFi hotspot; nothing leaves the device.
+- **Read & identify** a card on the antenna (LF, HF or auto) across **29 families** — see below.
+- **Decode** — for encrypted cards the panel tells you so and can **recover keys and dump** (MIFARE Classic
+  `autopwn`, iCLASS, Ultralight), right from the card's detail sheet.
+- **Capabilities at a glance** — every card shows chips: *emulable*, *clonable → which blank*, *encrypted*.
+- **Library** — save each read with a name and notes; stored on the Pi, survives updates. Search + LF/HF filter.
+- **Emulate** — tap any card and the Proxmark emulates it; a banner shows what is live, one tap stops it.
+- **Persistent emulation** — emit a card, power the kit off, and it **resumes emitting on the next boot**
+  automatically, until you cancel it in the panel.
+- **Write / clone** — write a saved credential onto the right blank (T5577 for LF, magic cards for HF).
+- **From your phone** — an offline panel over the Pi's own WiFi hotspot; nothing leaves the device.
+
+See **[docs/installation.md](docs/installation.md)** for the full flash-to-first-read guide.
 
 > [!NOTE]
 > **No hardware yet?** Run the panel in demo mode on any computer:
 > `PROXLAFY_DEMO=1 python3 files/proxlafy_server.py --port 8080` → http://localhost:8080
+
+## Supported card families
+
+**LF 125 kHz** — HID Prox, EM410x, Indala, AWID, ioProx (Kantech), Paradox, Pyramid (Farpointe), Viking,
+Noralsy, Jablotron, Keri, Nexwatch (Honeywell), Securakey, Gallagher, Presco, FDX-B (animal), Visa2000,
+EM4x05/4x50, T55x7.
+
+**HF 13.56 MHz** — MIFARE Classic 1K/4K, MIFARE Ultralight / NTAG, MIFARE DESFire, MIFARE Plus, HID iCLASS,
+ISO15693 / iCODE, FeliCa, Topaz, LEGIC, ISO14443-B (SRx).
+
+Open formats are fully clonable/emulable; encrypted ones (DESFire SL3, iCLASS Elite, Plus SL3…) are
+identified and read as far as their crypto allows — the panel is honest about what can and cannot be cloned.
 
 ## Hardware
 

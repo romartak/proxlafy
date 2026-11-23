@@ -159,18 +159,43 @@ class App:
         self.admin_pw = conf.get("ADMIN_PASSWORD", "") or ""
         self.viewer_pw = conf.get("VIEWER_PASSWORD", "") or ""
         self.log = Log()
-        cards_dir = conf.get("CARDS_DIR") or "/var/lib/proxlafy/cards"
-        if os.environ.get("PROXLAFY_DEMO") == "1" and not os.path.isdir("/var/lib/proxlafy"):
-            cards_dir = os.environ.get("PROXLAFY_CARDS_DIR", os.path.join(HERE, "..", "data", "cards"))
+        state_dir = "/var/lib/proxlafy"
+        cards_dir = conf.get("CARDS_DIR") or os.path.join(state_dir, "cards")
+        if os.environ.get("PROXLAFY_DEMO") == "1" and not os.path.isdir(state_dir):
+            state_dir = os.environ.get("PROXLAFY_STATE_DIR", os.path.abspath(os.path.join(HERE, "..", "data")))
+            cards_dir = os.environ.get("PROXLAFY_CARDS_DIR", os.path.join(state_dir, "cards"))
+        self.state_dir = os.path.abspath(state_dir)
         self.lib = Library(os.path.abspath(cards_dir))
         self.pm = PM3(
             client=conf.get("PM3_CLIENT", "pm3"),
             port=conf.get("PM3_PORT", "auto"),
             firmware=conf.get("PM3_FIRMWARE", "iceman"),
             demo=os.environ.get("PROXLAFY_DEMO") == "1",
+            state_dir=self.state_dir,
         )
         self._sessions = {}   # token -> role
         self.log.add("Proxlafy iniciado · started", "ok")
+        if self.pm.active():
+            self.log.add("Emulación pendiente de reanudar · emulation pending resume: %s"
+                         % (self.pm.active().get("name") or self.pm.active().get("label")), "warn")
+        self._mon = threading.Thread(target=self._monitor, daemon=True)
+        self._mon.start()
+
+    def _monitor(self):
+        """Resume a persisted emulation after a power cycle, and log when it goes live."""
+        was_running = False
+        while True:
+            try:
+                self.pm.resume_if_needed()
+                st = self.pm.status()
+                running = st.get("simulating") is not None
+                if running and not was_running:
+                    self.log.add("Emulación activa · emulation live: %s"
+                                 % (st["simulating"].get("name") or st["simulating"].get("label")), "ok")
+                was_running = running
+            except Exception:  # noqa: BLE001
+                pass
+            time.sleep(4)
 
     # -------------------------------------------------- auth
     def auth_open(self):
@@ -345,6 +370,51 @@ class Handler(BaseHTTPRequestHandler):
             saved = self.app.lib.save(card)
             self.app.log.add("Guardada · saved: %s" % (saved.get("name") or saved.get("label")), "ok")
             return self._send_json({"ok": True, "card": saved})
+
+        if path == "/api/emulate":
+            # Emulate a saved card (by id) OR an unsaved one (the last read, sent in the body).
+            if not self._require("admin"):
+                return
+            card = self.app.lib.get(body["id"]) if body.get("id") else (body.get("card") or {})
+            if not card or not card.get("key"):
+                return self._send_json({"ok": False, "error": "sin datos · no card data"}, 400)
+            try:
+                cmd = self.app.pm.start_sim(card)
+            except Exception as e:  # noqa: BLE001
+                self.app.log.add("No se pudo emular · emulate failed: %s" % e, "err")
+                return self._send_json({"ok": False, "error": str(e)}, 500)
+            self.app.log.add("Emulando · emulating: %s [%s]" % (card.get("name") or card.get("label"), cmd), "ok")
+            return self._send_json({"ok": True, "command": cmd})
+
+        if path == "/api/decode":
+            if not self._require("admin"):
+                return
+            card = body.get("card") or {}
+            if not card.get("key"):
+                return self._send_json({"ok": False, "error": "sin datos · no card data"}, 400)
+            self.app.log.add("Decodificando · decoding: %s…" % card.get("type"))
+            try:
+                card, res = self.app.pm.decode(card)
+            except Exception as e:  # noqa: BLE001
+                return self._send_json({"ok": False, "error": str(e)}, 500)
+            self.app.log.add("Decodificación · decode: %s" % ("OK" if res.get("ok") else "falló · failed"),
+                             "ok" if res.get("ok") else "err")
+            return self._send_json({"ok": res.get("ok", False), "card": card, "result": res})
+
+        m = re.match(r"^/api/cards/([^/]+)/decode$", path)
+        if m:
+            if not self._require("admin"):
+                return
+            card = self.app.lib.get(m.group(1))
+            if not card:
+                return self._send_json({"ok": False, "error": "not found"}, 404)
+            self.app.log.add("Decodificando · decoding: %s…" % card.get("type"))
+            try:
+                card, res = self.app.pm.decode(card)
+                self.app.lib.save(card)
+            except Exception as e:  # noqa: BLE001
+                return self._send_json({"ok": False, "error": str(e)}, 500)
+            return self._send_json({"ok": res.get("ok", False), "card": card, "result": res})
 
         m = re.match(r"^/api/cards/([^/]+)/emulate$", path)
         if m:

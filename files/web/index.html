@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b0e12">
+  <meta name="theme-color" content="#0a0d11">
   <title>Proxlafy</title>
   <link rel="icon" href="icon.svg">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,11 +11,14 @@
 </head>
 <body>
 
-  <!-- Emulation banner · Banner de emulación -->
-  <div id="simbar" class="simbar hidden" role="status">
+  <!-- Emulation banner (pending / live) · Banner de emulación -->
+  <div id="simbar" class="simbar" hidden role="status" aria-live="polite">
     <span class="simbar-dot"></span>
-    <span id="simbar-text" class="simbar-text"></span>
-    <button id="simbar-stop" class="btn btn-stop" data-i18n="stop">Detener</button>
+    <div class="simbar-body">
+      <span id="simbar-kicker" class="simbar-kicker">EMULANDO</span>
+      <span id="simbar-text" class="simbar-text"></span>
+    </div>
+    <button id="simbar-stop" class="btn btn-stop">Detener</button>
   </div>
 
   <header class="topbar">
@@ -30,87 +33,105 @@
     </div>
     <div class="top-actions">
       <button id="lang-toggle" class="chip" title="Language / Idioma">EN</button>
-      <button id="logout" class="chip hidden" data-i18n="logout">Salir</button>
+      <button id="logout" class="chip" hidden data-i18n="logout">Salir</button>
     </div>
   </header>
 
   <!-- Login -->
-  <section id="login" class="login hidden">
-    <div class="card login-card">
+  <section id="login" class="login" hidden>
+    <div class="card login-card stagger">
+      <svg class="login-logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="11" cy="16" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 11c3 1.6 3 8 0 9.8M19 8.4c5 2.6 5 12.6 0 15.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <h2 data-i18n="login_title">Acceso al panel</h2>
-      <p class="muted" data-i18n="login_sub">Esta herramienta lee, clona y emula credenciales. Protégela.</p>
+      <p class="muted" data-i18n="login_sub">Lee, clona y emula credenciales. Protégela.</p>
       <input id="login-pw" type="password" autocomplete="current-password" data-i18n-ph="password" placeholder="Clave">
       <button id="login-btn" class="btn btn-primary" data-i18n="enter">Entrar</button>
-      <p id="login-err" class="err hidden"></p>
+      <p id="login-err" class="err" hidden></p>
     </div>
   </section>
 
-  <main id="main" class="main hidden">
+  <main id="main" class="main" hidden>
 
-    <!-- Device + Read · Lector + Leer -->
-    <section class="card device">
-      <div class="device-head">
-        <span id="dev-dot" class="dot"></span>
-        <div class="device-info">
-          <strong id="dev-state" data-i18n="dev_checking">Comprobando…</strong>
-          <small id="dev-fw" class="muted"></small>
+    <!-- Segmented navigation · Navegación -->
+    <nav class="seg-nav" style="--count:3" aria-label="views">
+      <span class="seg-pill" aria-hidden="true"></span>
+      <button class="seg-item active" data-view="read" data-i18n="nav_read">Leer</button>
+      <button class="seg-item" data-view="library" data-i18n="nav_library">Biblioteca</button>
+      <button class="seg-item" data-view="system" data-i18n="nav_system">Sistema</button>
+    </nav>
+
+    <!-- VIEW: READ -->
+    <section id="view-read" class="view">
+      <div class="card device">
+        <div class="device-head">
+          <span id="dev-dot" class="dot"></span>
+          <div class="device-info">
+            <strong id="dev-state" data-i18n="dev_checking">Comprobando…</strong>
+            <small id="dev-fw" class="muted"></small>
+          </div>
+          <span id="dev-pill" class="hpill" hidden></span>
+        </div>
+        <div class="read-controls">
+          <div class="seg small" role="group">
+            <button class="seg-btn active" data-band="auto" data-i18n="band_auto">Auto</button>
+            <button class="seg-btn" data-band="lf">LF · 125k</button>
+            <button class="seg-btn" data-band="hf">HF · 13.56M</button>
+          </div>
+          <button id="read-btn" class="btn btn-primary btn-big cta">
+            <span class="btn-label" data-i18n="read">Leer tarjeta</span>
+            <span class="loader-dots" hidden><i style="--o:0"></i><i style="--o:1"></i><i style="--o:2"></i><i style="--o:3"></i></span>
+          </button>
         </div>
       </div>
-      <div class="read-controls">
-        <div class="seg">
-          <button class="seg-btn active" data-band="auto" data-i18n="band_auto">Auto</button>
-          <button class="seg-btn" data-band="lf">LF 125k</button>
-          <button class="seg-btn" data-band="hf">HF 13.56M</button>
+      <div id="read-result" class="read-result"></div>
+    </section>
+
+    <!-- VIEW: LIBRARY -->
+    <section id="view-library" class="view" hidden>
+      <div class="lib-tools">
+        <input id="lib-search" type="search" data-i18n-ph="search" placeholder="Buscar…" autocomplete="off">
+        <div class="seg small filter">
+          <button class="seg-btn active" data-filter="all" data-i18n="all">Todas</button>
+          <button class="seg-btn" data-filter="lf">LF</button>
+          <button class="seg-btn" data-filter="hf">HF</button>
         </div>
-        <button id="read-btn" class="btn btn-primary btn-big" data-i18n="read">Leer tarjeta</button>
       </div>
-      <div id="read-result" class="read-result hidden"></div>
+      <div id="library" class="library" aria-live="polite">
+        <p id="lib-empty" class="muted empty" data-i18n="lib_empty">Aún no hay tarjetas. Lee una y pulsa Guardar.</p>
+      </div>
     </section>
 
-    <!-- Library · Biblioteca -->
-    <section class="section-head">
-      <h2 data-i18n="library">Biblioteca</h2>
-      <span id="lib-count" class="count">0</span>
-    </section>
-    <section id="library" class="library">
-      <p id="lib-empty" class="muted empty" data-i18n="lib_empty">Aún no has guardado tarjetas. Lee una y pulsa Guardar.</p>
-    </section>
-
-    <!-- Console · Consola -->
-    <details class="console">
-      <summary data-i18n="console">Consola</summary>
-      <div id="console-log" class="console-log"></div>
-    </details>
-
-    <!-- System · Sistema -->
-    <details class="system">
-      <summary data-i18n="system">Sistema y actualizaciones</summary>
-      <div class="system-body">
-        <p class="muted" data-i18n="update_hint">Las actualizaciones se aplican desde la línea de comandos en la Pi:</p>
+    <!-- VIEW: SYSTEM -->
+    <section id="view-system" class="view" hidden>
+      <div class="card">
+        <h3 data-i18n="sys_device">Dispositivo</h3>
+        <dl class="kv">
+          <dt data-i18n="sys_fw">Firmware</dt><dd id="sys-fw">–</dd>
+          <dt data-i18n="sys_conn">Conexión</dt><dd id="sys-conn">–</dd>
+          <dt data-i18n="sys_cards">Tarjetas guardadas</dt><dd id="sys-count">0</dd>
+          <dt data-i18n="sys_ver">Versión</dt><dd id="sys-ver">–</dd>
+        </dl>
+      </div>
+      <details class="console grow">
+        <summary data-i18n="console">Consola en vivo</summary>
+        <div id="console-log" class="console-log"></div>
+      </details>
+      <div class="card">
+        <h3 data-i18n="sys_updates">Actualizaciones</h3>
+        <p class="muted small" data-i18n="update_hint">Se aplican desde la Pi (con auto-rollback si fallan):</p>
         <code class="cmd">sudo proxlafy update</code>
-        <p class="muted small" data-i18n="update_rollback">Si el panel nuevo no arranca, vuelve solo a la versión anterior.</p>
+        <p class="muted small" data-i18n="sys_remote">Acceso remoto seguro con Tailscale (opcional, ver docs).</p>
       </div>
-    </details>
+    </section>
 
   </main>
 
-  <!-- Card editor modal · Editor de tarjeta -->
-  <div id="modal" class="modal hidden">
-    <div class="modal-box card">
-      <h3 id="modal-title" data-i18n="edit_card">Editar tarjeta</h3>
-      <label data-i18n="name">Nombre</label>
-      <input id="modal-name" type="text" maxlength="80">
-      <label data-i18n="notes">Notas</label>
-      <textarea id="modal-notes" rows="3" maxlength="500"></textarea>
-      <div id="modal-raw" class="modal-raw muted"></div>
-      <div class="modal-actions">
-        <button id="modal-cancel" class="btn" data-i18n="cancel">Cancelar</button>
-        <button id="modal-save" class="btn btn-primary" data-i18n="save">Guardar</button>
-      </div>
-    </div>
-  </div>
+  <!-- Card detail bottom sheet · Hoja de detalle -->
+  <dialog id="sheet" class="sheet">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div id="sheet-body" class="sheet-body stagger"></div>
+  </dialog>
 
-  <div id="toast" class="toast hidden"></div>
+  <div id="toast" class="toast" hidden></div>
 
   <script src="i18n.js"></script>
   <script src="app.js"></script>

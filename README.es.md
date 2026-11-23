@@ -21,16 +21,34 @@ con hotspot WiFi automático y actualizaciones con auto-rollback.
 
 ## Qué hace
 
-- **Leer** una tarjeta en la antena (LF, HF o auto) e identificarla: HID Prox, EM410x, Indala, T55x7,
-  MIFARE Classic/DESFire, iCLASS, NTAG/Ultralight…
-- **Biblioteca** — guarda cada lectura con nombre y notas; todo queda en la Pi y sobrevive a las actualizaciones.
-- **Emular** — eliges una tarjeta guardada y el Proxmark la emula; un banner muestra cuál está activa y la detienes con un toque.
-- **Escribir** — clona una credencial LF guardada a una **T5577** en blanco (y HF a tarjetas *magic* donde se soporte).
-- **Desde el celular** — la Pi sirve un panel sin internet por su propio hotspot WiFi; nada sale del dispositivo.
+- **Leer e identificar** una tarjeta en la antena (LF, HF o auto) entre **29 familias** — ver abajo.
+- **Decodificar** — con tarjetas cifradas el panel te lo avisa y puede **recuperar claves y volcar** (MIFARE
+  Classic `autopwn`, iCLASS, Ultralight), desde la hoja de detalle de la tarjeta.
+- **Capacidades de un vistazo** — cada tarjeta muestra chips: *emulable*, *clonable → a qué blanco*, *cifrada*.
+- **Biblioteca** — guarda cada lectura con nombre y notas; queda en la Pi y sobrevive a las actualizaciones. Búsqueda + filtro LF/HF.
+- **Emular** — tocas una tarjeta y el Proxmark la emula; un banner muestra cuál está activa, se detiene con un toque.
+- **Emulación persistente** — emites una tarjeta, apagas el equipo, y al **reencender vuelve a emitirla sola**
+  automáticamente, hasta que la canceles en el panel.
+- **Escribir / clonar** — escribe una credencial guardada al blanco correcto (T5577 para LF, magic para HF).
+- **Desde el celular** — panel sin internet por el hotspot WiFi de la Pi; nada sale del dispositivo.
+
+Ver **[docs/installation.md](docs/installation.md)** para la guía completa (de grabar la SD a la primera lectura).
 
 > [!NOTE]
 > **¿Aún sin hardware?** Corre el panel en modo demo en cualquier computadora:
 > `PROXLAFY_DEMO=1 python3 files/proxlafy_server.py --port 8080` → http://localhost:8080
+
+## Familias de tarjetas soportadas
+
+**LF 125 kHz** — HID Prox, EM410x, Indala, AWID, ioProx (Kantech), Paradox, Pyramid (Farpointe), Viking,
+Noralsy, Jablotron, Keri, Nexwatch (Honeywell), Securakey, Gallagher, Presco, FDX-B (animal), Visa2000,
+EM4x05/4x50, T55x7.
+
+**HF 13.56 MHz** — MIFARE Classic 1K/4K, MIFARE Ultralight / NTAG, MIFARE DESFire, MIFARE Plus, HID iCLASS,
+ISO15693 / iCODE, FeliCa, Topaz, LEGIC, ISO14443-B (SRx).
+
+Los formatos abiertos son clonables/emulables; los cifrados (DESFire SL3, iCLASS Elite, Plus SL3…) se
+identifican y se leen hasta donde su cripto lo permite — el panel es honesto sobre qué se puede y qué no.
 
 ## Hardware
 
