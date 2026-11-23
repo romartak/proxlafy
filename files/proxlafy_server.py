@@ -176,6 +176,7 @@ class App:
             state_dir=self.state_dir,
         )
         self._sessions = {}   # token -> role
+        self.history = []     # last reads (not saved), newest first
         self.log.add("Proxlafy iniciado · started", "ok")
         if self.pm.active():
             self.log.add("Emulación pendiente de reanudar · emulation pending resume: %s"
@@ -323,6 +324,14 @@ class Handler(BaseHTTPRequestHandler):
             lang = "en" if (qs.get("lang", ["es"])[0] == "en") else "es"
             return self._send_json({"ok": True, "catalog": standalone_mod.catalog(lang),
                                     "status": self.app.pm.standalone_status()})
+        if path == "/api/device":
+            try:
+                dev = self.app.pm.device_status()
+            except Exception as e:  # noqa: BLE001
+                dev = {"error": str(e)}
+            return self._send_json({"ok": True, "device": dev})
+        if path == "/api/history":
+            return self._send_json({"ok": True, "history": self.app.history})
         m = re.match(r"^/api/cards/([^/]+)$", path)
         if m:
             card = self.app.lib.get(m.group(1))
@@ -363,6 +372,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.app.log.add("No se detectó ninguna tarjeta · no card detected", "warn")
                 return self._send_json({"ok": True, "card": None})
             self.app.log.add("Detectada · detected: %s (%s)" % (card.get("type"), card.get("label")), "ok")
+            entry = {"type": card.get("type"), "label": card.get("label"), "band": card.get("band"),
+                     "key": card.get("key"), "t": time.time()}
+            self.app.history.insert(0, entry)
+            self.app.history[:] = self.app.history[:25]
             return self._send_json({"ok": True, "card": card})
 
         if path == "/api/cards":
@@ -384,8 +397,9 @@ class Handler(BaseHTTPRequestHandler):
             card = self.app.lib.get(body["id"]) if body.get("id") else (body.get("card") or {})
             if not card or not card.get("key"):
                 return self._send_json({"ok": False, "error": "sin datos · no card data"}, 400)
+            seconds = cint(body.get("seconds"), 0)
             try:
-                cmd = self.app.pm.start_sim(card)
+                cmd = self.app.pm.start_sim(card, seconds=seconds)
             except Exception as e:  # noqa: BLE001
                 self.app.log.add("No se pudo emular · emulate failed: %s" % e, "err")
                 return self._send_json({"ok": False, "error": str(e)}, 500)

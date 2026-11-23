@@ -2,6 +2,26 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.4.0
+
+**Emit hub · Centro de emisión** (new tab)
+- A dedicated **Emitir** tab: a big live-emission hero (with an animated wave) + Stop, a duration selector
+  (no limit / 10s / 30s / 60s) and one-tap emit from the library.
+- **Keep going without the Pi**: when a card is active, the hub shows the standalone mode that would keep the
+  Proxmark emitting it from its own power with no host (the "only the Proxmark is powered" case), with a
+  Prepare button. (idea 12 + the power-bank scenario)
+
+**Smarter reads**
+- **Wiegand decoder** for HID: shows the 26-bit frame with facility / card / parity highlighted. (17)
+- **Continuous scan** toggle and a **read history** in the Scan tab. (1, 4)
+- **Auto-verify after cloning**: re-reads the written card and reports match/mismatch. (13)
+
+**Device & UX**
+- **Antenna health** (LF/HF voltages) in System. (21)
+- **Manual theme** toggle (system / dark / light) and a **Beginner/Expert** mode that hides the raw console
+  and commands for newcomers. (26, 27)
+- Timed emission auto-stops; the whole thing stays phone-first, bilingual and offline.
+
 ## 0.3.0
 
 **Feasibility engine · Motor de viabilidad** (`files/feasibility.py`)

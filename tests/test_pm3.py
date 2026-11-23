@@ -115,6 +115,31 @@ logs = []
 r = pm.program_standalone("HF_MATTYRUN", log=lambda s: logs.append(s))
 check("program standalone ok", r["ok"] and pm.standalone_status()["current"] == "HF_MATTYRUN")
 
+# ---- extras: wiegand, device, emit duration, standalone bridge --------------
+import extras  # noqa: E402
+
+wc = {"key": "hid_prox", "data": {"format": "H10301", "fc": "123", "cn": "45678"}}
+w = extras.wiegand_decode(wc)
+check("wiegand 26-bit", w and w["bits"] == 26 and len(w["binary"]) == 26)
+check("wiegand parity bits present", "even_parity" in w and "odd_parity" in w)
+check("standalone_for HID = SAMYRUN", extras.standalone_for({"key": "hid_prox"})["mode"] == "LF_SAMYRUN")
+check("standalone_for DESFire = none", extras.standalone_for({"key": "mifare_desfire"})["mode"] is None)
+tune = extras.parse_tune("LF antenna: 32.1 V\nHF antenna: 7.9 V")
+check("parse_tune LF/HF", tune["lf_v"] == 32.1 and tune["hf_v"] == 7.9 and tune["lf_ok"] and tune["hf_ok"])
+
+dev = pm.device_status()
+check("device_status antenna", dev.get("lf_v") and dev.get("hf_v"))
+
+import time as _t
+pm.stop_sim()
+pm.start_sim(card, seconds=1)
+check("timed emit running", pm.status()["simulating"] is not None)
+_t.sleep(1.3)
+check("timed emit auto-stopped", pm.status()["simulating"] is None)
+
+wres = pm.write_card(card)
+check("write auto-verified", wres.get("verified") is True)
+
 print()
 if fails:
     print("%d test(s) failed" % fails); sys.exit(1)

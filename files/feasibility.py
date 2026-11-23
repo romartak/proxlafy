@@ -241,10 +241,16 @@ def candidate(card):
 
 
 def enrich(card):
-    """Attach feasibility + modules (+ blank candidacy) to a card dict (idempotent)."""
+    """Attach feasibility + modules (+ blank candidacy, Wiegand, standalone bridge) to a card."""
     if not card or not card.get("key"):
         return card
     card["feasibility"] = assess(card)
     card["modules"] = modules(card)
     card["candidate"] = candidate(card)
+    try:
+        import extras
+        card["wiegand"] = extras.wiegand_decode(card)
+        card["standalone_for"] = extras.standalone_for(card)
+    except Exception:  # noqa: BLE001
+        pass
     return card

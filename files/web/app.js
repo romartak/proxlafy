@@ -27,6 +27,25 @@
     applyI18n(); renderAll();
   };
 
+  // theme: cycle system → dark → light → system
+  function setThemeIcon() { var c = document.documentElement.getAttribute("data-theme"); $id("theme-btn").textContent = c === "light" ? "☀" : (c === "dark" ? "☾" : "◐"); }
+  (function () { var t; try { t = localStorage.getItem("proxlafy_theme"); } catch (e) {} if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); setThemeIcon(); })();
+  $id("theme-btn").onclick = function () {
+    var c = document.documentElement.getAttribute("data-theme");
+    var n = c === "dark" ? "light" : (c === "light" ? null : "dark");
+    if (n) document.documentElement.setAttribute("data-theme", n); else document.documentElement.removeAttribute("data-theme");
+    try { if (n) localStorage.setItem("proxlafy_theme", n); else localStorage.removeItem("proxlafy_theme"); } catch (e) {}
+    setThemeIcon();
+  };
+
+  // expert / beginner mode
+  (function () {
+    var e; try { e = localStorage.getItem("proxlafy_expert") === "1"; } catch (x) {}
+    document.body.classList.toggle("expert", !!e);
+    var cb = $id("expert-toggle");
+    if (cb) { cb.checked = !!e; cb.onchange = function () { document.body.classList.toggle("expert", cb.checked); try { localStorage.setItem("proxlafy_expert", cb.checked ? "1" : "0"); } catch (x) {} }; }
+  })();
+
   // ------------------------------------------------ api / toast
   function api(path, opts) {
     opts = opts || {};
@@ -64,9 +83,11 @@
     var items = Array.prototype.slice.call(document.querySelectorAll(".seg-item"));
     items.forEach(function (x, i) { x.classList.toggle("active", x.getAttribute("data-view") === name); if (x.getAttribute("data-view") === name) idx = i; });
     $(".seg-nav").style.setProperty("--active", idx);
-    ["read", "scan", "library", "system"].forEach(function (v) { $id("view-" + v).hidden = v !== name; });
+    ["read", "scan", "emit", "library", "system"].forEach(function (v) { $id("view-" + v).hidden = v !== name; });
     if (name === "library") refreshCards();
-    if (name === "system") loadStandalone();
+    if (name === "emit") refreshCards().then(renderEmit);
+    if (name === "scan") refreshHistory();
+    if (name === "system") { loadStandalone(); loadDevice(); }
   }
 
   // ------------------------------------------------ status
@@ -82,6 +103,7 @@
       showMain();
       $id("logout").hidden = s.auth_open;
       renderDevice(s); renderSimbar(); renderSystem(s);
+      if (state.view === "emit") renderEmit();
     }).catch(function () {});
   }
   function renderDevice(s) {
@@ -182,6 +204,13 @@
   function headSubHTML(card) {
     return '<div class="sheet-head"><span class="badge ' + card.band + '">' + card.band.toUpperCase() + '</span><span class="sheet-title">' + esc(card.type) + '</span></div><div class="tag-sub" style="margin:2px 0 4px">' + esc(card.label || "") + "</div>";
   }
+  function wiegandHTML(card) {
+    var w = card.wiegand;
+    if (!w || !w.binary) return "";
+    return '<div class="wieg"><div class="feas-title">Wiegand ' + w.bits + "-bit</div>" +
+      '<div class="wb"><span class="par">' + w.even_parity + '</span><span class="fac">' + esc(w.facility_bits) + '</span><span class="crd">' + esc(w.card_bits) + '</span><span class="par">' + w.odd_parity + "</span></div>" +
+      '<div class="wlegend"><span><b class="par">■</b> ' + T("w_parity") + '</span><span><b class="fac">■</b> ' + T("w_facility") + " " + w.fc + '</span><span><b class="crd">■</b> ' + T("w_card") + " " + w.cn + "</span></div></div>";
+  }
 
   // ------------------------------------------------ READ
   document.querySelectorAll("#view-read .seg-btn").forEach(function (b) {
@@ -207,7 +236,7 @@
   }
   function detailInnerHTML(card, ctx) {
     return headSubHTML(card) + (ctx === "scan" ? candidateHTML(card) : "") +
-      '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + noteHTML(card) +
+      '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + wiegandHTML(card) + noteHTML(card) +
       feasHTML(card) + actionsHTML(card, "read") + modulesHTML(card);
   }
   function renderRead(card) {
@@ -230,7 +259,7 @@
     api("/api/read", { method: "POST", body: { band: state.scanBand || "auto" } }).then(function (j) {
       setLoadingScan(false);
       if (!j.ok) { toast(j.error || T("err_generic"), "err"); return; }
-      renderScan(j.card);
+      renderScan(j.card); refreshHistory();
     }).catch(function () { setLoadingScan(false); });
   };
   function setLoadingScan(on) {
@@ -260,7 +289,7 @@
       h += '<div class="sheet-field"><label>' + T("notes") + '</label><textarea id="sf-notes" rows="2" maxlength="500">' + esc(card.notes || "") + "</textarea></div>";
       h += '<div class="btn-row"><button class="btn" data-a="savemeta">' + T("save") + '</button><button class="btn btn-ghost" data-a="del">🗑 ' + T("del") + "</button></div>";
     }
-    if (card.raw_output) h += '<details class="console grow" style="padding:0;margin-top:10px;border:0"><summary class="small muted">' + T("raw") + '</summary><div class="sheet-raw">' + esc(card.raw_output.trim()) + "</div></details>";
+    if (card.raw_output) h += '<details class="console grow adv" style="padding:0;margin-top:10px;border:0"><summary class="small muted">' + T("raw") + '</summary><div class="sheet-raw">' + esc(card.raw_output.trim()) + "</div></details>";
     return h;
   }
   function wireActions(root, card, ctx) {
@@ -296,7 +325,9 @@
       var wurl = card.id ? "/api/cards/" + card.id + "/write" : null;
       if (!wurl) { toast(T("save_card") + " →", "err"); if (btn) btn.disabled = false; return; }
       api(wurl, { method: "POST" }).then(function (j) {
-        toast(j.ok ? "OK ✓" : (j.error || T("err_generic")), j.ok ? "ok" : "err");
+        var vr = j.result && j.result.verified;
+        var msg = !j.ok ? (j.error || T("err_generic")) : (vr === true ? T("verified_ok") : (vr === false ? T("verified_fail") : "OK ✓"));
+        toast(msg, (j.ok && vr !== false) ? "ok" : "err");
         if (btn) { btn.disabled = false; btn.textContent = "⎘ " + T("write_to"); }
       });
     } else if (a === "savemeta") {
@@ -373,7 +404,7 @@
       '<div class="sheet-head"><span class="badge ' + card.band + '">' + card.band.toUpperCase() + "</span>" +
         '<span class="sheet-title">' + esc(card.name || card.type) + "</span></div>" +
       '<div class="tag-sub" style="margin:2px 0 6px">' + esc(card.type + " · " + (card.label || "")) + "</div>" +
-      '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + noteHTML(card) +
+      '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + wiegandHTML(card) + noteHTML(card) +
       feasHTML(card) + actionsHTML(card, "sheet") + modulesHTML(card);
     wireActions(body, card, "sheet");
     if (typeof sheet.showModal === "function") { if (!sheet.open) sheet.showModal(); } else { sheet.setAttribute("open", ""); }
@@ -464,7 +495,96 @@
     }).join("");
   }
 
-  function renderAll() { renderRead(state.lastRead); if (state.lastScan) renderScan(state.lastScan); renderLibrary(); if (state.standalone) renderStandalone(); }
+  // ------------------------------------------------ EMIT hub
+  var STD_FOR = { hid_prox: "LF_SAMYRUN", em410x: "LF_EM4100RWC", mifare_classic: "HF_MFCSIM", mifare_ultralight: "HF_AVEFUL", iclass: "HF_ICECLASS", iso15693: "HF_TMUDFORD" };
+  document.querySelectorAll("#emit-dur-seg .seg-btn").forEach(function (b) {
+    b.onclick = function () { document.querySelectorAll("#emit-dur-seg .seg-btn").forEach(function (x) { x.classList.remove("active"); }); b.classList.add("active"); state.emitSec = +b.getAttribute("data-sec"); };
+  });
+  function emitCard(c) {
+    api("/api/emulate", { method: "POST", body: { id: c.id, seconds: state.emitSec || 0 } }).then(function (j) {
+      if (j.ok) { toast(T("emulate_started") + ": " + (c.name || c.label), "ok"); refreshStatus().then(renderEmit); }
+      else toast(j.error || T("err_generic"), "err");
+    });
+  }
+  function emitTag(c) {
+    var b = document.createElement("button"); b.className = "tag"; b.setAttribute("data-id", c.id);
+    if (state.sim && state.sim.id === c.id) b.classList.add("simming");
+    b.innerHTML = '<span class="badge ' + c.band + '">' + c.band.toUpperCase() + '</span><span class="tag-title"><span class="tag-name">' + esc(c.name || c.type) + '</span><span class="tag-sub">' + esc(c.type + " · " + (c.label || "")) + '</span></span><span class="tag-flags">▶</span>';
+    b.onclick = function () { emitCard(c); };
+    return b;
+  }
+  function renderEmitStd(active) {
+    var box = $id("emit-standalone");
+    var full = state.cards.filter(function (x) { return x.id === active.id; })[0] || active;
+    var sf = full.standalone_for;
+    var mode = (sf && sf.mode) || STD_FOR[active.key];
+    if (!mode) { box.hidden = true; return; }
+    var note = sf ? (lang === "es" ? sf.note_es : sf.note_en) :
+      (lang === "es" ? ("Graba " + mode + " para que el Proxmark siga emitiendo esto con su propia energía, sin la Pi.")
+                     : ("Flash " + mode + " so the Proxmark keeps emitting this on its own power, with no Pi."));
+    box.hidden = false;
+    box.innerHTML = "<h4>⚡ " + T("std_fallback_title") + "</h4><p>" + esc(note) + "</p>" +
+      '<button class="btn" id="emit-std-prep">' + T("std_prepare") + ' <span class="mode-chip">' + esc(mode) + "</span></button>";
+    $id("emit-std-prep").onclick = function () {
+      if (!confirm(T("std_confirm"))) return;
+      api("/api/standalone/flash", { method: "POST", body: { mode: mode } }).then(function (r) { if (r.ok) toast(T("std_flashing"), "ok"); });
+    };
+  }
+  function renderEmit() {
+    var hero = $id("emit-active"), live = state.sim, pend = state.pending, c = live || pend;
+    if (c) {
+      hero.className = "card emit-hero " + (live ? "live" : "pending");
+      hero.innerHTML = '<div class="eh-kicker">' + (live ? T("emulating") : T("resuming")) + "</div>" +
+        '<div class="eh-name">' + esc(c.name || c.label || c.type) + "</div>" +
+        '<div class="eh-sub">' + esc((c.type || "") + (c.label ? " · " + c.label : "")) + "</div>" +
+        (live ? '<div class="eh-wave"><i></i><i></i><i></i><i></i><i></i></div>' : "") +
+        '<button class="btn btn-stop" id="emit-stop">' + T("stop") + "</button>";
+      $id("emit-stop").onclick = function () { api("/api/emulate/stop", { method: "POST" }).then(function () { state.sim = null; state.pending = null; refreshStatus().then(renderEmit); toast(T("emulate_stopped")); }); };
+      renderEmitStd(c);
+    } else {
+      hero.className = "card emit-hero";
+      hero.innerHTML = '<div class="eh-empty"><span class="big">📡</span>' + esc(T("emit_none")) + '<br><span class="small">' + esc(T("emit_pick")) + "</span></div>";
+      $id("emit-standalone").hidden = true;
+    }
+    var wrap = $id("emit-quick"); wrap.querySelectorAll(".tag").forEach(function (n) { n.remove(); });
+    var emulables = state.cards.filter(function (x) { return (x.caps || {}).emulable; });
+    $id("emit-empty").style.display = emulables.length ? "none" : "";
+    var frag = document.createDocumentFragment();
+    emulables.forEach(function (x) { frag.appendChild(emitTag(x)); });
+    wrap.appendChild(frag);
+  }
+
+  // ------------------------------------------------ history
+  function refreshHistory() {
+    return api("/api/history").then(function (j) {
+      if (!j.ok) return;
+      var h = j.history || [], box = $id("history-list");
+      $id("history-box").hidden = !h.length;
+      box.innerHTML = h.map(function (it) {
+        return '<div class="history-row"><span class="badge ' + it.band + '">' + it.band.toUpperCase() + '</span><span>' + esc(it.type + " · " + (it.label || "")) + '</span><span class="h-time">' + esc(new Date(it.t * 1000).toLocaleTimeString()) + "</span></div>";
+      }).join("");
+    }).catch(function () {});
+  }
+
+  // ------------------------------------------------ device status
+  function loadDevice() {
+    return api("/api/device").then(function (j) {
+      if (!j.ok) return; var d = j.device || {};
+      var fmt = function (v, ok) { return v != null ? v.toFixed(1) + " V " + (ok ? "✓" : "⚠") : "–"; };
+      var le = $id("sys-antlf"), he = $id("sys-anthf");
+      if (le) le.textContent = fmt(d.lf_v, d.lf_ok);
+      if (he) he.textContent = fmt(d.hf_v, d.hf_ok);
+    }).catch(function () {});
+  }
+
+  // ------------------------------------------------ continuous scan
+  var scanTimer = null;
+  $id("scan-continuous").onchange = function () {
+    if (this.checked) { scanTimer = setInterval(function () { if (state.view === "scan" && !state.sim && !$id("scan-btn").disabled) $id("scan-btn").click(); }, 1700); }
+    else { clearInterval(scanTimer); scanTimer = null; }
+  };
+
+  function renderAll() { renderRead(state.lastRead); if (state.lastScan) renderScan(state.lastScan); renderLibrary(); if (state.standalone) renderStandalone(); if (state.view === "emit") renderEmit(); }
 
   // ------------------------------------------------ boot
   function boot() { refreshStatus().then(refreshCards).then(refreshLog); }

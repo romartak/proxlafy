@@ -32,7 +32,8 @@
       <span id="version" class="version" title="">v–</span>
     </div>
     <div class="top-actions">
-      <button id="help-btn" class="chip" title="Ayuda / Help" aria-label="Ayuda">?</button>
+      <button id="theme-btn" class="chip chip-icon" title="Tema / Theme" aria-label="Tema">◐</button>
+      <button id="help-btn" class="chip chip-icon" title="Ayuda / Help" aria-label="Ayuda">?</button>
       <button id="lang-toggle" class="chip" title="Language / Idioma">EN</button>
       <button id="logout" class="chip" hidden data-i18n="logout">Salir</button>
     </div>
@@ -53,10 +54,11 @@
   <main id="main" class="main" hidden>
 
     <!-- Segmented navigation · Navegación -->
-    <nav class="seg-nav" style="--count:4" aria-label="views">
+    <nav class="seg-nav n5" style="--count:5" aria-label="views">
       <span class="seg-pill" aria-hidden="true"></span>
       <button class="seg-item active" data-view="read" data-i18n="nav_read">Leer</button>
       <button class="seg-item" data-view="scan" data-i18n="nav_scan">Escanear</button>
+      <button class="seg-item" data-view="emit" data-i18n="nav_emit">Emitir</button>
       <button class="seg-item" data-view="library" data-i18n="nav_library">Biblioteca</button>
       <button class="seg-item" data-view="system" data-i18n="nav_system">Sistema</button>
     </nav>
@@ -101,8 +103,30 @@
           <span class="btn-label" data-i18n="scan_btn">Identificar</span>
           <span class="loader-dots" hidden><i style="--o:0"></i><i style="--o:1"></i><i style="--o:2"></i><i style="--o:3"></i></span>
         </button>
+        <label class="switch"><input type="checkbox" id="scan-continuous"><span class="switch-track"></span><span class="switch-label" data-i18n="scan_continuous">Escaneo continuo</span></label>
       </div>
       <div id="scan-result" class="read-result"></div>
+      <details class="console grow" id="history-box" hidden>
+        <summary class="small muted" data-i18n="history">Historial de lecturas</summary>
+        <div id="history-list" class="history-list"></div>
+      </details>
+    </section>
+
+    <!-- VIEW: EMIT -->
+    <section id="view-emit" class="view" hidden>
+      <div id="emit-active" class="card emit-hero"></div>
+      <div id="emit-standalone" class="card emit-std" hidden></div>
+      <div class="emit-dur">
+        <span class="emit-dur-label" data-i18n="emit_dur">Duración</span>
+        <div class="seg small" id="emit-dur-seg">
+          <button class="seg-btn active" data-sec="0" data-i18n="dur_inf">Sin límite</button>
+          <button class="seg-btn" data-sec="10">10s</button>
+          <button class="seg-btn" data-sec="30">30s</button>
+          <button class="seg-btn" data-sec="60">60s</button>
+        </div>
+      </div>
+      <div class="section-head"><h2 data-i18n="emit_from_lib">Emitir desde la biblioteca</h2></div>
+      <div id="emit-quick" class="library"><p id="emit-empty" class="muted empty" data-i18n="lib_empty">Aún no hay tarjetas.</p></div>
     </section>
 
     <!-- VIEW: LIBRARY -->
@@ -122,6 +146,10 @@
 
     <!-- VIEW: SYSTEM -->
     <section id="view-system" class="view" hidden>
+      <div class="card">
+        <h3 data-i18n="prefs">Preferencias</h3>
+        <label class="switch"><input type="checkbox" id="expert-toggle"><span class="switch-track"></span><span class="switch-label" data-i18n="expert_mode">Modo experto (consola y comandos)</span></label>
+      </div>
       <div class="card standalone">
         <h3 data-i18n="std_title">Modo standalone</h3>
         <p class="muted small" data-i18n="std_intro">Programa el Proxmark para funcionar solo, sin la Pi ni el panel — con cualquier fuente de energía y su propio botón. El cliente USB sigue funcionando; una pulsación larga entra al modo.</p>
@@ -137,11 +165,13 @@
         <dl class="kv">
           <dt data-i18n="sys_fw">Firmware</dt><dd id="sys-fw">–</dd>
           <dt data-i18n="sys_conn">Conexión</dt><dd id="sys-conn">–</dd>
+          <dt data-i18n="sys_antlf">Antena LF</dt><dd id="sys-antlf">–</dd>
+          <dt data-i18n="sys_anthf">Antena HF</dt><dd id="sys-anthf">–</dd>
           <dt data-i18n="sys_cards">Tarjetas guardadas</dt><dd id="sys-count">0</dd>
           <dt data-i18n="sys_ver">Versión</dt><dd id="sys-ver">–</dd>
         </dl>
       </div>
-      <details class="console grow">
+      <details class="console grow adv">
         <summary data-i18n="console">Consola en vivo</summary>
         <div id="console-log" class="console-log"></div>
       </details>

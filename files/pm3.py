@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import catalog  # noqa: E402
 import feasibility  # noqa: E402
 import standalone as standalone_mod  # noqa: E402
+import extras  # noqa: E402
 
 PROMPT = re.compile(r"pm3 -->\s*$")
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
@@ -243,8 +244,9 @@ class PM3:
             return None
         return catalog.build_cmd("clone", entry, card.get("data", {}))
 
-    def start_sim(self, card):
-        """Set the card as the active emulation (persisted) and begin emulating."""
+    def start_sim(self, card, seconds=0):
+        """Set the card as the active emulation (persisted) and begin emulating.
+        seconds > 0 auto-stops after that long (timed emission)."""
         with self._lock:
             cmd = self.build_sim(card)
             if not cmd:
@@ -254,6 +256,10 @@ class PM3:
                             "data": card.get("data", {})}
             self._save_active(cmd)
             self._ensure_sim(cmd)
+            if seconds and seconds > 0:
+                t = threading.Timer(float(seconds), self.stop_sim)
+                t.daemon = True
+                t.start()
             return cmd
 
     def _ensure_sim(self, cmd=None):
@@ -302,14 +308,46 @@ class PM3:
         return self._active
 
     # ================================================================ write / clone to blank
-    def write_card(self, card):
+    def write_card(self, card, verify=True):
         cmd = self.build_clone(card)
         if not cmd:
             raise RuntimeError("escritura no soportada para · write unsupported for: %s" % card.get("type"))
         out = self.run(cmd, timeout=60)
         ok = self.demo or any(w in out.lower() for w in ("done", "written", "verified", "ok"))
-        return {"ok": bool(ok), "command": cmd,
-                "output": "demo: escrito · written" if self.demo else out[-2000:]}
+        result = {"ok": bool(ok), "command": cmd,
+                  "output": "demo: escrito · written" if self.demo else out[-2000:]}
+        if ok and verify:
+            if self.demo:
+                result["verified"] = True
+                result["verify_label"] = card.get("label")
+            else:
+                try:
+                    check = self.read(card.get("band", "auto"))
+                    orig = card.get("data", {})
+                    chk = (check or {}).get("data", {})
+                    match = bool(check) and (
+                        (check.get("label") and check.get("label") == card.get("label")) or
+                        (orig.get("uid") and orig.get("uid") == chk.get("uid")) or
+                        (orig.get("id") and orig.get("id") == chk.get("id")))
+                    result["verified"] = bool(match)
+                    result["verify_label"] = (check or {}).get("label")
+                except Exception:  # noqa: BLE001
+                    result["verified"] = None
+        return result
+
+    # ================================================================ device / antenna
+    def device_status(self):
+        """Antenna health (LF/HF voltages) from `hw tune`, plus connection + standalone."""
+        base = {"standalone": self.standalone_status().get("current")}
+        if self.demo:
+            base.update({"lf_v": 32.4, "hf_v": 8.1, "lf_ok": True, "hf_ok": True, "demo": True})
+            return base
+        try:
+            out = self.run("hw tune", timeout=20)
+            base.update(extras.parse_tune(out))
+        except Exception as e:  # noqa: BLE001
+            base["error"] = str(e)
+        return base
 
     # ================================================================ standalone modes
     def standalone_status(self):
