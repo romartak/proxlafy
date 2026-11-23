@@ -32,6 +32,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(HERE, "web")
 sys.path.insert(0, HERE)
 from pm3 import PM3  # noqa: E402
+import feasibility  # noqa: E402
+import standalone as standalone_mod  # noqa: E402
 
 CONF_PATH = os.environ.get("PROXLAFY_CONF", "/etc/proxlafy/proxlafy.conf")
 
@@ -312,17 +314,21 @@ class Handler(BaseHTTPRequestHandler):
             if not self._require("viewer" if self.app.viewer_pw else "admin") and not self.app.auth_open():
                 if self._role() is None:
                     return
-            return self._send_json({"ok": True, "cards": self.app.lib.list()})
+            return self._send_json({"ok": True, "cards": [feasibility.enrich(c) for c in self.app.lib.list()]})
         if path == "/api/log":
             since = cint(qs.get("since", ["0"])[0], 0)
             items, cur = self.app.log.since(since)
             return self._send_json({"ok": True, "items": items, "cursor": cur})
+        if path == "/api/standalone":
+            lang = "en" if (qs.get("lang", ["es"])[0] == "en") else "es"
+            return self._send_json({"ok": True, "catalog": standalone_mod.catalog(lang),
+                                    "status": self.app.pm.standalone_status()})
         m = re.match(r"^/api/cards/([^/]+)$", path)
         if m:
             card = self.app.lib.get(m.group(1))
             if not card:
                 return self._send_json({"ok": False, "error": "not found"}, 404)
-            return self._send_json({"ok": True, "card": card})
+            return self._send_json({"ok": True, "card": feasibility.enrich(card)})
         return self._send_json({"ok": False, "error": "unknown"}, 404)
 
     # -------------------------------------------------- POST / etc
@@ -446,6 +452,20 @@ class Handler(BaseHTTPRequestHandler):
             self.app.log.add("Escritura · write: %s" % ("OK" if res["ok"] else "falló · failed"),
                              "ok" if res["ok"] else "err")
             return self._send_json({"ok": res["ok"], "result": res})
+
+        if path == "/api/standalone/flash":
+            if not self._require("admin"):
+                return
+            mode = str(body.get("mode", ""))
+            app = self.app
+
+            def _run():
+                app.log.add("Programando standalone · programming standalone: %s" % mode, "warn")
+                res = app.pm.program_standalone(mode, log=lambda ln: app.log.add(ln))
+                app.log.add("Standalone: %s" % ("OK ✓" if res.get("ok") else "falló · failed"),
+                            "ok" if res.get("ok") else "err")
+            threading.Thread(target=_run, daemon=True).start()
+            return self._send_json({"ok": True, "started": True})
 
         if path == "/api/emulate/stop":
             if not self._require("admin"):

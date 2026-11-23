@@ -2,6 +2,28 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.3.0
+
+**Feasibility engine · Motor de viabilidad** (`files/feasibility.py`)
+- When you read a card the panel now shows, for **emulate** and **clone** separately: a verdict
+  (High/Medium/Low/No), a **success-chance meter (0–100%)**, the **requirements** (a T5577 blank, keys
+  recovered, a magic card…) and the **risks / why it might fail** (reader checks data sectors, NTAG ECC
+  signature, gen1a detection, encrypted…). Honest, not a guarantee.
+
+**Module workflow · Flujo por módulos**
+- Each card lays out its work as sections like the Android Proxmark apps: Identify → Read/Dump → Recover
+  keys → Feasibility → Emulate/Clone → Verify, each with a status (done/ready/blocked) and a **Run** button,
+  plus **Run workflow** to chain them.
+
+**Scan / Identify tab · Pestaña Escanear**
+- Read a card only to classify it (no save). Marks **rewritable blanks as clone candidates** and says what
+  they accept — made for sorting a pile of unknown white cards.
+
+**Standalone mode section · Sección de modo standalone**
+- Program the Proxmark to run with no host (no Pi, no panel) from any power source and its own button.
+  Curated list of Iceman standalone modes (LF_SAMYRUN, HF_MATTYRUN, HF_ICECLASS…), one-tap **Program**
+  (build + flash), and a list of the related GitHub repositories. See `docs/standalone.md`.
+
 ## 0.2.0
 
 **Card catalog · Catálogo de tarjetas**

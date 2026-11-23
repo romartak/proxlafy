@@ -21,6 +21,13 @@ an automatic WiFi hotspot and self-rollback updates.
 ## What it does
 
 - **Read & identify** a card on the antenna (LF, HF or auto) across **29 families** — see below.
+- **Feasibility** — on every read, a verdict + **success-chance meter** for emulate and for clone, the
+  **requirements** and the **risks / why it might fail**. No guessing.
+- **Module workflow** — the work laid out in sections (Identify → Dump → Recover keys → Emulate/Clone →
+  Verify) with per-step **Run** and a one-tap **Run workflow**, like the Android Proxmark apps.
+- **Scan / Identify tab** — read a pile of unknown blanks just to classify them and spot **clone candidates**.
+- **Standalone mode** — program the Proxmark to run with no Pi/panel, from any power source and its button
+  ([docs/standalone.md](docs/standalone.md)).
 - **Decode** — for encrypted cards the panel tells you so and can **recover keys and dump** (MIFARE Classic
   `autopwn`, iCLASS, Ultralight), right from the card's detail sheet.
 - **Capabilities at a glance** — every card shows chips: *emulable*, *clonable → which blank*, *encrypted*.

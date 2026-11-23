@@ -85,6 +85,36 @@ if mf:
     mf, res = pm2.decode(mf)
     check("decode MIFARE ok", res["ok"] and mf.get("decoded"))
 
+# ---- feasibility -----------------------------------------------------------
+import feasibility  # noqa: E402
+
+hid = {"band": "lf", "type": "HID Prox", "key": "hid_prox", "data": {"fc": "1", "cn": "2"},
+       "caps": catalog.capabilities(*catalog.classify("HID H10301 26-bit; FC: 1 CN: 2", "lf"))}
+feasibility.enrich(hid)
+check("HID feasibility high", hid["feasibility"]["emulate"]["verdict"] == "high")
+check("HID has modules", len(hid["modules"]) >= 4)
+
+mc = {"band": "hf", "type": "MIFARE Classic", "key": "mifare_classic", "data": {"uid": "04"},
+      "caps": catalog.capabilities(*catalog.classify("MIFARE Classic 1K UID: 04", "hf"))}
+feasibility.enrich(mc)
+check("MIFARE blocked before decode", any(m["status"] == "blocked" for m in mc["modules"]))
+mc["decoded"] = True
+feasibility.enrich(mc)
+check("MIFARE ready after decode", all(m["status"] != "blocked" for m in mc["modules"]))
+
+blank = {"band": "lf", "type": "T55x7", "key": "t55xx", "data": {}, "caps": {"emulable": False, "clonable": False}}
+feasibility.enrich(blank)
+check("T55xx is a clone candidate", blank["candidate"] and blank["candidate"]["blank"])
+
+# ---- standalone ------------------------------------------------------------
+import standalone  # noqa: E402
+check("standalone modes >= 10", len(standalone.MODES) >= 10)
+check("LF_SAMYRUN present", "LF_SAMYRUN" in standalone.MODES_BY_ID)
+check("parse current mode", standalone.parse_current("Standalone mode..... LF_SAMYRUN") == "LF_SAMYRUN")
+logs = []
+r = pm.program_standalone("HF_MATTYRUN", log=lambda s: logs.append(s))
+check("program standalone ok", r["ok"] and pm.standalone_status()["current"] == "HF_MATTYRUN")
+
 print()
 if fails:
     print("%d test(s) failed" % fails); sys.exit(1)

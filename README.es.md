@@ -22,6 +22,13 @@ con hotspot WiFi automático y actualizaciones con auto-rollback.
 ## Qué hace
 
 - **Leer e identificar** una tarjeta en la antena (LF, HF o auto) entre **29 familias** — ver abajo.
+- **Viabilidad** — en cada lectura, un veredicto + **medidor de probabilidad de éxito** para emular y para
+  clonar, los **requisitos** y los **riesgos / por qué podría fallar**. Sin adivinar.
+- **Flujo por módulos** — el trabajo en secciones (Identificar → Volcar → Recuperar claves → Emular/Clonar →
+  Verificar) con **Ejecutar** por paso y un **Ejecutar flujo** de un toque, como las apps de Android.
+- **Pestaña Escanear** — lee un montón de blancos desconocidos solo para clasificarlos y ver **candidatas**.
+- **Modo standalone** — programa el Proxmark para funcionar sin Pi/panel, con cualquier fuente y su botón
+  ([docs/standalone.md](docs/standalone.md)).
 - **Decodificar** — con tarjetas cifradas el panel te lo avisa y puede **recuperar claves y volcar** (MIFARE
   Classic `autopwn`, iCLASS, Ultralight), desde la hoja de detalle de la tarjeta.
 - **Capacidades de un vistazo** — cada tarjeta muestra chips: *emulable*, *clonable → a qué blanco*, *cifrada*.

@@ -64,8 +64,9 @@
     var items = Array.prototype.slice.call(document.querySelectorAll(".seg-item"));
     items.forEach(function (x, i) { x.classList.toggle("active", x.getAttribute("data-view") === name); if (x.getAttribute("data-view") === name) idx = i; });
     $(".seg-nav").style.setProperty("--active", idx);
-    ["read", "library", "system"].forEach(function (v) { $id("view-" + v).hidden = v !== name; });
+    ["read", "scan", "library", "system"].forEach(function (v) { $id("view-" + v).hidden = v !== name; });
     if (name === "library") refreshCards();
+    if (name === "system") loadStandalone();
   }
 
   // ------------------------------------------------ status
@@ -139,6 +140,48 @@
     if (!note) return "";
     return '<div class="note' + (c.secure ? " secure" : "") + '">' + esc(note) + "</div>";
   }
+  function verdictLabel(v) { return T("v_" + v); }
+  function feasBlock(kind, fe) {
+    if (!fe) return "";
+    var icon = kind === "emulate" ? "▶" : "⎘", v = fe.verdict;
+    var h = '<div class="feas-sub"><div class="feas-head"><span>' + icon + '</span><span class="fname">' + T("feas_" + kind) + '</span><span class="verdict ' + v + '">' + verdictLabel(v) + "</span></div>";
+    if (v !== "no") {
+      h += '<div class="meter"><span class="meter-fill ' + v + '" style="--p:' + (fe.score / 100) + '"></span></div>';
+      h += '<div class="feas-score">' + fe.score + "% · " + T("chance") + "</div>";
+    }
+    var items = "";
+    (fe.requirements || []).forEach(function (r) { items += '<li class="req ' + (r.level || "") + '"><span class="ic">◆</span>' + esc(lang === "es" ? r.es : r.en) + "</li>"; });
+    (fe.risks || []).forEach(function (r) { items += '<li class="' + (r.level || "low") + '"><span class="ic">⚠</span>' + esc(lang === "es" ? r.es : r.en) + "</li>"; });
+    if (items) h += '<ul class="feas-list">' + items + "</ul>";
+    return h + "</div>";
+  }
+  function feasHTML(card) {
+    if (!card.feasibility) return "";
+    var f = card.feasibility;
+    return '<div class="feas"><div class="feas-title">' + T("feas_title") + "</div>" + feasBlock("emulate", f.emulate) + feasBlock("clone", f.clone) + "</div>";
+  }
+  function modulesHTML(card) {
+    if (!card.modules || !card.modules.length) return "";
+    var hasRun = card.modules.some(function (m) { return m.action && m.status === "ready"; });
+    var h = '<div class="mods"><div class="mods-head"><div class="feas-title">' + T("mods_title") + "</div>";
+    if (hasRun) h += '<button class="btn runflow" data-a="runflow">▶ ' + T("run_flow") + "</button>";
+    h += "</div>";
+    card.modules.forEach(function (m) {
+      var mark = m.status === "done" ? "✓" : (m.status === "blocked" ? "🔒" : (m.status === "ready" ? "›" : "·"));
+      h += '<div class="mod ' + m.status + '"><div class="mod-dot">' + mark + '</div><div class="mod-body"><div class="mod-title">' + esc(lang === "es" ? m.title_es : m.title_en) + '</div><div class="mod-desc">' + esc(lang === "es" ? m.desc_es : m.desc_en) + "</div>";
+      if (m.action && m.status === "ready") h += '<button class="btn mod-btn" data-a="' + m.action + '">' + T("mod_run") + "</button>";
+      if (m.status === "blocked") h += '<div class="mod-hint">' + T("mod_blocked") + "</div>";
+      h += "</div></div>";
+    });
+    return h + "</div>";
+  }
+  function candidateHTML(card) {
+    if (!card.candidate || !card.candidate.blank) return "";
+    return '<div class="candidate"><span class="ic">✓</span><div><b>' + esc(T("candidate_blank")) + '</b><div class="cnote">' + esc(lang === "es" ? card.candidate.note_es : card.candidate.note_en) + "</div></div></div>";
+  }
+  function headSubHTML(card) {
+    return '<div class="sheet-head"><span class="badge ' + card.band + '">' + card.band.toUpperCase() + '</span><span class="sheet-title">' + esc(card.type) + '</span></div><div class="tag-sub" style="margin:2px 0 4px">' + esc(card.label || "") + "</div>";
+  }
 
   // ------------------------------------------------ READ
   document.querySelectorAll("#view-read .seg-btn").forEach(function (b) {
@@ -162,17 +205,46 @@
     if (lab) lab.textContent = on ? T("reading") : T("read");
     if (dots) dots.hidden = !on;
   }
+  function detailInnerHTML(card, ctx) {
+    return headSubHTML(card) + (ctx === "scan" ? candidateHTML(card) : "") +
+      '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + noteHTML(card) +
+      feasHTML(card) + actionsHTML(card, "read") + modulesHTML(card);
+  }
   function renderRead(card) {
     var box = $id("read-result");
     if (!card) { box.innerHTML = '<div class="card detect"><p class="muted">' + esc(T("no_card")) + "</p></div>"; return; }
-    box.innerHTML =
-      '<div class="card detect card-detail">' +
-        '<div class="sheet-head"><span class="badge ' + card.band + '">' + card.band.toUpperCase() + "</span>" +
-          '<span class="sheet-title">' + esc(card.type) + "</span></div>" +
-        '<div class="tag-sub" style="margin:2px 0 4px">' + esc(card.label || "") + "</div>" +
-        '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + noteHTML(card) +
-        actionsHTML(card, "read") + "</div>";
+    box.innerHTML = '<div class="card detect card-detail">' + detailInnerHTML(card, "read") + "</div>";
     wireActions(box, card, "read");
+  }
+
+  // ------------------------------------------------ SCAN / IDENTIFY
+  document.querySelectorAll("#scan-band .seg-btn").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll("#scan-band .seg-btn").forEach(function (x) { x.classList.remove("active"); });
+      b.classList.add("active"); state.scanBand = b.getAttribute("data-band");
+    };
+  });
+  $id("scan-btn").onclick = function () {
+    if (state.sim) { toast(T("emulating")); return; }
+    setLoadingScan(true);
+    api("/api/read", { method: "POST", body: { band: state.scanBand || "auto" } }).then(function (j) {
+      setLoadingScan(false);
+      if (!j.ok) { toast(j.error || T("err_generic"), "err"); return; }
+      renderScan(j.card);
+    }).catch(function () { setLoadingScan(false); });
+  };
+  function setLoadingScan(on) {
+    var btn = $id("scan-btn"); btn.disabled = on;
+    var lab = $(".btn-label", btn), dots = $(".loader-dots", btn);
+    if (lab) lab.textContent = on ? T("reading") : T("scan_btn");
+    if (dots) dots.hidden = !on;
+  }
+  function renderScan(card) {
+    var box = $id("scan-result");
+    if (!card) { box.innerHTML = '<div class="card detect"><p class="muted">' + esc(T("no_card")) + "</p></div>"; return; }
+    state.lastScan = card;
+    box.innerHTML = '<div class="card detect card-detail">' + detailInnerHTML(card, "scan") + "</div>";
+    wireActions(box, card, "scan");
   }
 
   // ------------------------------------------------ action buttons (shared read + sheet)
@@ -201,7 +273,7 @@
       var name = prompt(T("name") + ":", card.type + " · " + (card.label || ""));
       if (name === null) return;
       api("/api/cards", { method: "POST", body: { name: name, card: card } }).then(function (j) {
-        if (j.ok) { toast(T("save") + " ✓", "ok"); $id("read-result").innerHTML = ""; refreshCards(); }
+        if (j.ok) { toast(T("save") + " ✓", "ok"); (ctx === "scan" ? $id("scan-result") : $id("read-result")).innerHTML = ""; refreshCards(); }
         else toast(j.error || T("err_generic"), "err");
       });
     } else if (a === "emit") {
@@ -215,7 +287,7 @@
       var url = card.id ? "/api/cards/" + card.id + "/decode" : "/api/decode";
       var opt = card.id ? { method: "POST" } : { method: "POST", body: { card: card } };
       api(url, opt).then(function (j) {
-        if (j.ok) { toast(T("decode") + " ✓", "ok"); if (j.card) { card = j.card; if (ctx === "sheet") openSheet(card); else renderRead(card); } refreshCards(); }
+        if (j.ok) { toast(T("decode") + " ✓", "ok"); if (j.card) { card = j.card; if (ctx === "sheet") openSheet(card); else if (ctx === "scan") renderScan(card); else renderRead(card); } refreshCards(); }
         else { toast((j.result && j.result.error) || j.error || T("err_generic"), "err"); if (btn) { btn.disabled = false; } }
       });
     } else if (a === "write") {
@@ -233,6 +305,16 @@
     } else if (a === "del") {
       if (!confirm(T("confirm_del"))) return;
       api("/api/cards/" + card.id, { method: "DELETE" }).then(function () { closeSheet(); refreshCards(); });
+    } else if (a === "runflow") {
+      var mods = card.modules || [];
+      var needsDecode = mods.some(function (m) { return m.key === "decode" && m.status === "ready"; });
+      var finish = function (c) { var em = (c.caps || {}).emulable; doAction(em ? "emit" : "write", c, ctx); };
+      if (needsDecode) {
+        toast(T("decoding"));
+        var durl = card.id ? "/api/cards/" + card.id + "/decode" : "/api/decode";
+        var dopt = card.id ? { method: "POST" } : { method: "POST", body: { card: card } };
+        api(durl, dopt).then(function (j) { finish(j.ok && j.card ? j.card : card); });
+      } else { finish(card); }
     }
   }
 
@@ -292,7 +374,7 @@
         '<span class="sheet-title">' + esc(card.name || card.type) + "</span></div>" +
       '<div class="tag-sub" style="margin:2px 0 6px">' + esc(card.type + " · " + (card.label || "")) + "</div>" +
       '<div class="caps">' + capsHTML(card) + "</div>" + dataHTML(card) + noteHTML(card) +
-      actionsHTML(card, "sheet");
+      feasHTML(card) + actionsHTML(card, "sheet") + modulesHTML(card);
     wireActions(body, card, "sheet");
     if (typeof sheet.showModal === "function") { if (!sheet.open) sheet.showModal(); } else { sheet.setAttribute("open", ""); }
   }
@@ -313,7 +395,42 @@
     }).catch(function () {});
   }
 
-  function renderAll() { renderRead(state.lastRead); renderLibrary(); }
+  // ------------------------------------------------ standalone
+  function loadStandalone() {
+    return api("/api/standalone?lang=" + lang).then(function (j) {
+      if (!j.ok) return;
+      state.standalone = j; renderStandalone();
+    }).catch(function () {});
+  }
+  function renderStandalone() {
+    var j = state.standalone; if (!j) return;
+    var cur = (j.status && j.status.current) || null;
+    var flashing = j.status && j.status.flashing;
+    $id("std-current").innerHTML = T("std_current") + ": " +
+      (cur ? '<span class="chip-mode">' + esc(cur) + "</span>" : '<span class="chip-mode none">' + T("std_none") + "</span>");
+    var modes = (j.catalog && j.catalog.modes) || [];
+    $id("std-modes").innerHTML = modes.map(function (m) {
+      var on = cur === m.id;
+      var badges = '<span class="std-badge ' + m.band + '">' + m.band.toUpperCase() + "</span>";
+      if (m.rec) badges += '<span class="std-badge rec">' + T("std_rec") + "</span>";
+      if (m.flash) badges += '<span class="std-badge rdv4">' + T("std_rdv4") + "</span>";
+      var btn = on ? "" : '<button class="btn' + (m.rec ? " btn-primary" : "") + '" data-flash="' + m.id + '"' + (flashing ? " disabled" : "") + ">" + (flashing ? T("std_flashing") : T("std_flash")) + "</button>";
+      return '<div class="std-mode' + (on ? " on" : "") + '"><div class="std-mode-head"><span class="std-id">' + esc(m.id) + "</span>" + badges + '</div><div class="std-name">' + esc(m.name) + '</div><div class="std-desc">' + esc(m.desc) + "</div>" + btn + "</div>";
+    }).join("");
+    $id("std-modes").querySelectorAll("[data-flash]").forEach(function (b) {
+      b.onclick = function () {
+        if (!confirm(T("std_confirm"))) return;
+        api("/api/standalone/flash", { method: "POST", body: { mode: b.getAttribute("data-flash") } })
+          .then(function (r) { if (r.ok) { toast(T("std_flashing"), "ok"); setView("system"); setTimeout(loadStandalone, 800); } });
+      };
+    });
+    var repos = (j.catalog && j.catalog.repos) || [];
+    $id("std-repos").innerHTML = repos.map(function (r) {
+      return '<div class="std-repo"><b>' + esc(r.name) + '</b> <span class="st">★' + r.stars + '</span><span class="rw">' + esc(r.what) + "</span></div>";
+    }).join("");
+  }
+
+  function renderAll() { renderRead(state.lastRead); if (state.lastScan) renderScan(state.lastScan); renderLibrary(); if (state.standalone) renderStandalone(); }
 
   // ------------------------------------------------ boot
   function boot() { refreshStatus().then(refreshCards).then(refreshLog); }

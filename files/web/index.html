@@ -52,9 +52,10 @@
   <main id="main" class="main" hidden>
 
     <!-- Segmented navigation · Navegación -->
-    <nav class="seg-nav" style="--count:3" aria-label="views">
+    <nav class="seg-nav" style="--count:4" aria-label="views">
       <span class="seg-pill" aria-hidden="true"></span>
       <button class="seg-item active" data-view="read" data-i18n="nav_read">Leer</button>
+      <button class="seg-item" data-view="scan" data-i18n="nav_scan">Escanear</button>
       <button class="seg-item" data-view="library" data-i18n="nav_library">Biblioteca</button>
       <button class="seg-item" data-view="system" data-i18n="nav_system">Sistema</button>
     </nav>
@@ -85,6 +86,24 @@
       <div id="read-result" class="read-result"></div>
     </section>
 
+    <!-- VIEW: SCAN / IDENTIFY -->
+    <section id="view-scan" class="view" hidden>
+      <div class="card">
+        <h3 data-i18n="scan_title">Identificar tarjeta</h3>
+        <p class="muted small" data-i18n="scan_intro">Lee una tarjeta solo para saber qué tipo es — sin guardarla. Útil para clasificar tus blancos y ver si sirven como candidatas para clonar.</p>
+        <div class="seg small" role="group" id="scan-band" style="margin-top:12px">
+          <button class="seg-btn active" data-band="auto" data-i18n="band_auto">Auto</button>
+          <button class="seg-btn" data-band="lf">LF · 125k</button>
+          <button class="seg-btn" data-band="hf">HF · 13.56M</button>
+        </div>
+        <button id="scan-btn" class="btn btn-primary btn-big cta" style="margin-top:12px">
+          <span class="btn-label" data-i18n="scan_btn">Identificar</span>
+          <span class="loader-dots" hidden><i style="--o:0"></i><i style="--o:1"></i><i style="--o:2"></i><i style="--o:3"></i></span>
+        </button>
+      </div>
+      <div id="scan-result" class="read-result"></div>
+    </section>
+
     <!-- VIEW: LIBRARY -->
     <section id="view-library" class="view" hidden>
       <div class="lib-tools">
@@ -102,6 +121,16 @@
 
     <!-- VIEW: SYSTEM -->
     <section id="view-system" class="view" hidden>
+      <div class="card standalone">
+        <h3 data-i18n="std_title">Modo standalone</h3>
+        <p class="muted small" data-i18n="std_intro">Programa el Proxmark para funcionar solo, sin la Pi ni el panel — con cualquier fuente de energía y su propio botón. El cliente USB sigue funcionando; una pulsación larga entra al modo.</p>
+        <div id="std-current" class="std-current"></div>
+        <div id="std-modes" class="std-modes"></div>
+        <details class="console grow" style="padding:0;border:0;margin-top:6px">
+          <summary class="small muted" data-i18n="std_repos">Repositorios de GitHub relacionados</summary>
+          <div id="std-repos" class="std-repos"></div>
+        </details>
+      </div>
       <div class="card">
         <h3 data-i18n="sys_device">Dispositivo</h3>
         <dl class="kv">

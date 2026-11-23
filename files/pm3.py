@@ -29,6 +29,8 @@ except Exception:  # pragma: no cover
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import catalog  # noqa: E402
+import feasibility  # noqa: E402
+import standalone as standalone_mod  # noqa: E402
 
 PROMPT = re.compile(r"pm3 -->\s*$")
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
@@ -67,6 +69,8 @@ class PM3:
         self._version = "Iceman (demo)" if self.demo else "?"
         self._last_err = ""
         self._demo_i = 0
+        self._demo_standalone = None   # demo: pretend a mode is flashed
+        self._flashing = False
         self._load_active()
 
     # ================================================================ session
@@ -183,11 +187,12 @@ class PM3:
         if not entry:
             return None
         caps = catalog.capabilities(entry, fields)
-        return {
+        card = {
             "band": band, "type": entry["name"], "key": entry["key"],
             "label": _label(entry, fields), "data": fields, "caps": caps,
             "raw_output": (out or "")[-4000:],
         }
+        return feasibility.enrich(card)
 
     # ================================================================ decode / deep read
     def decode(self, card):
@@ -220,6 +225,7 @@ class PM3:
                 }.get(op, "hw status")
                 out = self.run(cmd, timeout=60)
                 card["decoded"] = True
+            feasibility.enrich(card)
             return card, {"ok": True, "output": out[-2000:]}
         except Exception as e:  # noqa: BLE001
             return card, {"ok": False, "error": str(e), "output": out[-2000:]}
@@ -305,6 +311,51 @@ class PM3:
         return {"ok": bool(ok), "command": cmd,
                 "output": "demo: escrito · written" if self.demo else out[-2000:]}
 
+    # ================================================================ standalone modes
+    def standalone_status(self):
+        """Which standalone mode the firmware currently reports (or None)."""
+        if self.demo:
+            return {"ok": True, "current": self._demo_standalone, "flashing": self._flashing}
+        try:
+            out = self.run("hw status", timeout=10)
+            return {"ok": True, "current": standalone_mod.parse_current(out), "flashing": self._flashing}
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "current": None, "flashing": self._flashing, "error": str(e)}
+
+    def program_standalone(self, mode, log=None):
+        """Build + flash a standalone mode. Long and irreversible-ish; the server runs it in a thread.
+        `log` is an optional callable(line) for live progress."""
+        log = log or (lambda *_a: None)
+        if mode not in standalone_mod.MODES_BY_ID:
+            return {"ok": False, "error": "modo desconocido · unknown mode: %s" % mode}
+        if self._flashing:
+            return {"ok": False, "error": "ya se está grabando · already flashing"}
+        self._flashing = True
+        try:
+            if self.demo:
+                for step in ("Seleccionando modo en Makefile.platform",
+                             "make clean && make -j (compilando firmware)…",
+                             "Grabando imagen (no desconectes)…",
+                             "✔ Listo (demo): modo %s grabado" % mode):
+                    log(step)
+                    time.sleep(0.4)
+                self._demo_standalone = mode
+                return {"ok": True, "mode": mode}
+            # live: run the helper script and stream its output
+            import subprocess
+            here = os.path.dirname(os.path.abspath(__file__))
+            script = os.path.join(here, "proxlafy-standalone.sh")
+            proc = subprocess.Popen(["bash", script, mode], stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, text=True)
+            for line in iter(proc.stdout.readline, ""):
+                line = line.rstrip("\n")
+                if line:
+                    log(line)
+            proc.wait()
+            return {"ok": proc.returncode == 0, "mode": mode, "rc": proc.returncode}
+        finally:
+            self._flashing = False
+
     # ================================================================ persistence
     @property
     def _active_path(self):
@@ -338,6 +389,8 @@ class PM3:
         "\n[+] EM 410x ID 1A2B3C4D5E\n[=]  Format: Unique\n",
         "\n[+] Indala (len 64)  Raw: a0000000c2f3e4b1  FC: 42  Card: 1337\n",
         "\n[+] AWID 26 FC: 200 Card: 31337\n",
+        "\n[+] Chipset detection: T55xx\n[=]  block 0: 000880E0\n[=]  (blank / writable)\n",
+        "\n[+] EM4x05/4x69\n[=]  word 0: 00008040\n[=]  (writable)\n",
         "\n[+] MIFARE Classic 1K\n[=]  UID: 04 A3 2B 9C\n[=]  ATQA: 00 04  SAK: 08\n",
         "\n[+] MIFARE Ultralight EV1\n[=]  UID: 04 51 7A B2 C1 33 80\n[=]  NTAG 215\n",
         "\n[+] iCLASS / PicoPass\n[=]  CSN: 00 0B 0F FF F7 FF 12 E0\n[=]  Config: 12 FF FF FF 7F 1F FF 3C\n",
