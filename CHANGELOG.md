@@ -24,6 +24,11 @@ All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
   Curated list of Iceman standalone modes (LF_SAMYRUN, HF_MATTYRUN, HF_ICECLASS…), one-tap **Program**
   (build + flash), and a list of the related GitHub repositories. See `docs/standalone.md`.
 
+**Panel · UX**
+- In-panel **quick guide** (the `?` button): a bilingual glossary explaining read vs emit, dump, recover
+  keys, emulate, clone, blank/candidate, modules, feasibility, LF vs HF and standalone — so the panel
+  teaches the terms where you use them.
+
 ## 0.2.0
 
 **Card catalog · Catálogo de tarjetas**

@@ -40,6 +40,7 @@ window.I18N = {
     std_flash: "Programar", std_flashing: "Programando…", std_rec: "Recomendado", std_rdv4: "necesita RDV4",
     std_confirm: "Esto recompila y graba el firmware del Proxmark (~15–30 min). No lo desconectes. ¿Continuar?",
     std_repos: "Repositorios de GitHub relacionados", band: "Banda",
+    help_title: "Guía rápida", help_intro: "Qué significa cada término del panel.",
   },
   en: {
     logout: "Log out", enter: "Enter", stop: "Stop", save: "Save", cancel: "Cancel",
@@ -81,6 +82,7 @@ window.I18N = {
     std_flash: "Program", std_flashing: "Programming…", std_rec: "Recommended", std_rdv4: "needs RDV4",
     std_confirm: "This recompiles and flashes the Proxmark firmware (~15–30 min). Don't unplug it. Continue?",
     std_repos: "Related GitHub repositories", band: "Band",
+    help_title: "Quick guide", help_intro: "What each term in the panel means.",
   },
 };
 window.pickLang = function () {

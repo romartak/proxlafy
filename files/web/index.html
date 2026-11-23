@@ -32,6 +32,7 @@
       <span id="version" class="version" title="">v–</span>
     </div>
     <div class="top-actions">
+      <button id="help-btn" class="chip" title="Ayuda / Help" aria-label="Ayuda">?</button>
       <button id="lang-toggle" class="chip" title="Language / Idioma">EN</button>
       <button id="logout" class="chip" hidden data-i18n="logout">Salir</button>
     </div>
@@ -158,6 +159,15 @@
   <dialog id="sheet" class="sheet">
     <div class="sheet-grip" aria-hidden="true"></div>
     <div id="sheet-body" class="sheet-body stagger"></div>
+  </dialog>
+
+  <dialog id="help" class="sheet">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-body">
+      <div class="sheet-head"><span class="sheet-title" data-i18n="help_title">Guía rápida</span></div>
+      <p class="muted small" data-i18n="help_intro">Qué significa cada término del panel.</p>
+      <div id="help-list" class="help-list"></div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" hidden></div>

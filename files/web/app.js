@@ -381,6 +381,40 @@
   function closeSheet() { if (sheet.open) { try { sheet.close(); } catch (e) { sheet.removeAttribute("open"); } } }
   sheet.addEventListener("click", function (e) { if (e.target === sheet) closeSheet(); });
 
+  // ------------------------------------------------ help glossary
+  var HELP = [
+    { es: "Leer vs Emitir", en: "Read vs Emit", de: "<b>Leer</b> es escuchar una tarjeta y copiar sus datos al panel. <b>Emitir</b> (emular) es que el Proxmark se haga pasar por esa tarjeta ante un lector. Leer es de entrada; emitir es de salida.",
+      den: "<b>Read</b> listens to a card and copies its data into the panel. <b>Emit</b> (emulate) makes the Proxmark pretend to be that card to a reader. Read is input; emit is output." },
+    { es: "Volcar (dump)", en: "Dump", badge: "key", de: "Copiar <b>toda la memoria</b> de la tarjeta (todos los sectores con sus datos), no solo su número. Es la «fotocopia completa»: lo que luego se emula o se escribe en un clon. Sin el volcado, un clon solo tendría el UID y muchos lectores lo rechazarían.",
+      den: "Copy <b>all the card's memory</b> (every sector with its data), not just its number. It's the full photocopy: what you then emulate or write to a clone. Without it a clone has only the UID, and many readers reject that." },
+    { es: "Recuperar claves", en: "Recover keys", badge: "key", de: "Las tarjetas cifradas (MIFARE, iCLASS) cierran sus datos con <b>claves</b>, como un candado. Hay que encontrarlas (el Proxmark lo hace con <code>autopwn</code>) antes de poder volcar y clonar. Sin las claves, no se pueden leer los datos.",
+      den: "Encrypted cards (MIFARE, iCLASS) lock their data behind <b>keys</b>, like a padlock. You must find them (the Proxmark does it with <code>autopwn</code>) before you can dump and clone. Without the keys the data can't be read." },
+    { es: "Emular", en: "Emulate", de: "El Proxmark <b>se comporta como la tarjeta</b> por radio, sin tocar ningún plástico. Útil para probar un lector al momento. Se detiene desde el panel.",
+      den: "The Proxmark <b>acts as the card</b> over radio, with no physical card involved. Good for testing a reader on the spot. Stop it from the panel." },
+    { es: "Clonar (escribir)", en: "Clone (write)", de: "Copiar los datos de la tarjeta a <b>otra tarjeta física en blanco</b> (una T5577 para LF, una «magic» para HF). El resultado es una tarjeta real que puedes llevar.",
+      den: "Copy the card's data onto <b>another blank physical card</b> (a T5577 for LF, a magic card for HF). The result is a real card you can carry." },
+    { es: "Blanco / Candidata", en: "Blank / Candidate", de: "Un <b>blanco</b> es una tarjeta regrabable y vacía (T5577, EM4305, «magic»). En Escanear, una tarjeta así se marca como <b>candidata</b>: sirve para recibir un clon. El panel te dice qué credenciales acepta.",
+      den: "A <b>blank</b> is an empty, rewritable card (T5577, EM4305, magic). In Scan, such a card is marked a <b>candidate</b>: it can receive a clone. The panel tells you which credentials it accepts." },
+    { es: "Módulos", en: "Modules", de: "Los <b>pasos ordenados</b> del trabajo con una tarjeta: Identificar → Volcar → Recuperar claves → Emular/Clonar → Verificar. En tarjetas simples casi todos salen ya hechos (✓); en las cifradas verás los que faltan.",
+      den: "The <b>ordered steps</b> for a card: Identify → Dump → Recover keys → Emulate/Clone → Verify. On simple cards most are already done (✓); on encrypted ones you'll see the ones still pending." },
+    { es: "Viabilidad", en: "Feasibility", de: "La <b>probabilidad de que funcione</b> contra un lector real, por separado para emular y clonar, con sus requisitos y riesgos. No es una garantía: es una estimación honesta.",
+      den: "The <b>chance it will work</b> against a real reader, separately for emulate and clone, with requirements and risks. Not a guarantee — an honest estimate." },
+    { es: "LF vs HF", en: "LF vs HF", de: "<b>LF (125 kHz)</b>: tarjetas simples de proximidad (HID Prox, EM410x) — se leen y emiten fácil. <b>HF (13.56 MHz)</b>: tarjetas con chip y, a veces, cifrado (MIFARE, iCLASS). Son radios distintas: una HID Prox no se clona en una MIFARE.",
+      den: "<b>LF (125 kHz)</b>: simple proximity cards (HID Prox, EM410x) — easy to read and emit. <b>HF (13.56 MHz)</b>: chip cards, sometimes encrypted (MIFARE, iCLASS). Different radios: an HID Prox can't be cloned onto a MIFARE." },
+    { es: "Standalone", en: "Standalone", de: "Programar el Proxmark para funcionar <b>solo, sin la Pi ni el panel</b> — con cualquier fuente de energía y su botón. Se graba un «modo» en su firmware (p. ej. LF_SAMYRUN: leer y reemitir una HID con el botón).",
+      den: "Program the Proxmark to run <b>on its own, no Pi or panel</b> — from any power source and its button. You flash a 'mode' into its firmware (e.g. LF_SAMYRUN: read and replay an HID with the button)." },
+  ];
+  var help = $id("help");
+  function openHelp() {
+    $id("help-list").innerHTML = HELP.map(function (h) {
+      var badge = h.badge ? ' <span class="ht-badge ' + h.badge + '">' + (lang === "es" ? "clave" : "key") + "</span>" : "";
+      return '<div class="help-term"><h4>' + esc(lang === "es" ? h.es : h.en) + badge + "</h4><p>" + (lang === "es" ? h.de : h.den) + "</p></div>";
+    }).join("");
+    if (typeof help.showModal === "function") { if (!help.open) help.showModal(); } else help.setAttribute("open", "");
+  }
+  $id("help-btn").onclick = openHelp;
+  help.addEventListener("click", function (e) { if (e.target === help) { try { help.close(); } catch (x) { help.removeAttribute("open"); } } });
+
   // ------------------------------------------------ console log
   function refreshLog() {
     return api("/api/log?since=" + state.logCursor).then(function (j) {
