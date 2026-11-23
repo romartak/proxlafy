@@ -1,0 +1,114 @@
+#!/bin/bash
+# Proxlafy · network watchdog · vigilante de red
+# Keeps the Pi always reachable · Mantiene la Raspberry siempre accesible:
+#   1) At boot it waits for a known WiFi (home, phone hotspot…) · Al encender espera a una WiFi conocida.
+#   2) If none shows up, it starts its own hotspot (default "Proxlafy", http://192.168.4.1).
+#   3) Hotspot on and nobody connected: every N minutes it looks for the known networks again.
+#   4) If the known WiFi is lost, back to the hotspot · Si se pierde la WiFi conocida, vuelve al hotspot.
+# Force the hotspot · Forzar hotspot:  echo hotspot > /run/proxlafy/netmode   ("auto" releases it)
+
+# shellcheck source=proxlafy-lib.sh
+source /opt/proxlafy/proxlafy-lib.sh
+proxlafy_load_conf /etc/proxlafy/proxlafy.conf
+proxlafy_lang_init
+
+IFACE="${WIFI_IFACE:-wlan0}"
+HS="${HOTSPOT_CON:-proxlafy-hotspot}"
+BOOT_WAIT="${BOOT_WAIT:-45}"
+RETRY_MIN="${HOME_RETRY_MIN:-5}"
+LOST_GRACE="${LOST_GRACE:-40}"
+MODEFILE=/run/proxlafy/netmode
+
+log() { L "$@"; }   # "English" "Español" → journal (proxlafy logs)
+
+dev_state()   { nmcli -g GENERAL.STATE device show "$IFACE" 2>/dev/null | cut -d' ' -f1; }
+active_con()  { nmcli -g GENERAL.CONNECTION device show "$IFACE" 2>/dev/null; }
+hotspot_on()  { [ "$(active_con)" = "$HS" ] && [ "$(dev_state)" = "100" ]; }
+client_on()   { [ "$(dev_state)" = "100" ] && [ "$(active_con)" != "$HS" ]; }
+stations()    { iw dev "$IFACE" station dump 2>/dev/null | grep -c '^Station'; }
+forced_mode() { cat "$MODEFILE" 2>/dev/null || echo auto; }
+
+known_uuids() {
+  nmcli -t -f UUID,TYPE,AUTOCONNECT-PRIORITY connection show 2>/dev/null |
+  while IFS=: read -r uuid type prio; do
+    [ "$type" = "802-11-wireless" ] || continue
+    [ "$(nmcli -g 802-11-wireless.mode connection show "$uuid" 2>/dev/null)" = "ap" ] && continue
+    echo "${prio:-0} $uuid"
+  done | sort -rn | awk '{print $2}'
+}
+
+start_hotspot() {
+  log "Starting the hotspot ($HS)…" "Levantando hotspot ($HS)…"
+  nmcli connection up "$HS" >/dev/null 2>&1 || log "Could not start the hotspot (check: nmcli connection show $HS)" \
+                                                   "No se pudo levantar el hotspot (revisa: nmcli connection show $HS)"
+}
+
+try_known() {
+  local uuids visible uuid ssid
+  uuids="$(known_uuids)"
+  [ -n "$uuids" ] || return 1
+  log "Looking for known networks…" "Buscando redes conocidas…"
+  nmcli connection down "$HS" >/dev/null 2>&1
+  sleep 3
+  nmcli device wifi rescan ifname "$IFACE" >/dev/null 2>&1
+  sleep 6
+  visible="$(nmcli -t -f SSID device wifi list ifname "$IFACE" 2>/dev/null | sed 's/\\:/:/g')"
+  for uuid in $uuids; do
+    ssid="$(nmcli -g 802-11-wireless.ssid connection show "$uuid" 2>/dev/null)"
+    [ -n "$ssid" ] || continue
+    if grep -Fxq -- "$ssid" <<<"$visible"; then
+      log "Known network in range: $ssid → connecting" "Red conocida visible: $ssid → conectando"
+      if nmcli --wait 40 connection up uuid "$uuid" ifname "$IFACE" >/dev/null 2>&1; then
+        log "Connected to $ssid" "Conectada a $ssid"
+        return 0
+      fi
+    fi
+  done
+  log "No known network available." "Ninguna red conocida disponible."
+  return 1
+}
+
+mkdir -p /run/proxlafy
+[ -f "$MODEFILE" ] || echo auto > "$MODEFILE"
+iw dev "$IFACE" set power_save off 2>/dev/null
+
+# 1) boot: wait for a known network · arranque: esperar una red conocida
+for _ in $(seq "$BOOT_WAIT"); do
+  client_on && break
+  sleep 1
+done
+if client_on; then
+  log "Boot: connected to a known WiFi ($(active_con))." "Arranque: conectada a WiFi conocida ($(active_con))."
+else
+  log "Boot: no known WiFi after ${BOOT_WAIT}s." "Arranque: sin WiFi conocida tras ${BOOT_WAIT}s."
+  start_hotspot
+fi
+
+last_try=$(date +%s)
+lost_since=0
+while true; do
+  sleep 10
+  now=$(date +%s)
+  if [ "$(forced_mode)" = "hotspot" ]; then
+    hotspot_on || start_hotspot
+    continue
+  fi
+  if client_on; then
+    lost_since=0
+    continue
+  fi
+  if hotspot_on; then
+    if [ "$RETRY_MIN" -gt 0 ] && [ $((now - last_try)) -ge $((RETRY_MIN * 60)) ] && [ "$(stations)" -eq 0 ]; then
+      last_try=$now
+      try_known || start_hotspot
+    fi
+    continue
+  fi
+  [ "$lost_since" -eq 0 ] && lost_since=$now
+  if [ $((now - lost_since)) -ge "$LOST_GRACE" ]; then
+    log "No network for ${LOST_GRACE}s." "Sin red durante ${LOST_GRACE}s."
+    start_hotspot
+    lost_since=0
+    last_try=$now
+  fi
+done

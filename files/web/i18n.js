@@ -1,0 +1,71 @@
+// Proxlafy · i18n (EN / ES). The panel works fully offline. · El panel funciona sin internet.
+window.I18N = {
+  es: {
+    logout: "Salir", enter: "Entrar", stop: "Detener", save: "Guardar", cancel: "Cancelar",
+    password: "Clave",
+    login_title: "Acceso al panel",
+    login_sub: "Esta herramienta lee, clona y emula credenciales. Protégela.",
+    dev_checking: "Comprobando lector…",
+    dev_connected: "Proxmark conectado",
+    dev_disconnected: "Proxmark no detectado",
+    dev_demo: "Modo demo (sin hardware)",
+    band_auto: "Auto",
+    read: "Leer tarjeta",
+    reading: "Leyendo…",
+    no_card: "No se detectó ninguna tarjeta. Acerca el tag a la antena.",
+    detected: "Detectada",
+    save_card: "Guardar en biblioteca",
+    saved: "Guardada",
+    library: "Biblioteca",
+    lib_empty: "Aún no has guardado tarjetas. Lee una y pulsa Guardar.",
+    emulate: "Emular", emulating: "Emulando", write: "Escribir", edit: "Editar", del: "Borrar",
+    confirm_del: "¿Borrar esta tarjeta de la biblioteca?",
+    write_confirm: "¿Escribir esta tarjeta sobre un tag físico en la antena?",
+    emulate_started: "Emulando",
+    emulate_stopped: "Emulación detenida",
+    console: "Consola",
+    system: "Sistema y actualizaciones",
+    update_hint: "Las actualizaciones se aplican desde la Pi:",
+    update_rollback: "Si el panel nuevo no arranca, vuelve solo a la versión anterior.",
+    edit_card: "Editar tarjeta", name: "Nombre", notes: "Notas",
+    err_generic: "Algo salió mal.", readonly: "Solo lectura: no puedes hacer esto.",
+  },
+  en: {
+    logout: "Log out", enter: "Enter", stop: "Stop", save: "Save", cancel: "Cancel",
+    password: "Password",
+    login_title: "Panel access",
+    login_sub: "This tool reads, clones and emulates credentials. Protect it.",
+    dev_checking: "Checking reader…",
+    dev_connected: "Proxmark connected",
+    dev_disconnected: "Proxmark not detected",
+    dev_demo: "Demo mode (no hardware)",
+    band_auto: "Auto",
+    read: "Read card",
+    reading: "Reading…",
+    no_card: "No card detected. Hold the tag to the antenna.",
+    detected: "Detected",
+    save_card: "Save to library",
+    saved: "Saved",
+    library: "Library",
+    lib_empty: "No saved cards yet. Read one and tap Save.",
+    emulate: "Emulate", emulating: "Emulating", write: "Write", edit: "Edit", del: "Delete",
+    confirm_del: "Delete this card from the library?",
+    write_confirm: "Write this card onto a physical tag on the antenna?",
+    emulate_started: "Emulating",
+    emulate_stopped: "Emulation stopped",
+    console: "Console",
+    system: "System & updates",
+    update_hint: "Updates are applied from the Pi:",
+    update_rollback: "If the new panel fails to start, it rolls back on its own.",
+    edit_card: "Edit card", name: "Name", notes: "Notes",
+    err_generic: "Something went wrong.", readonly: "Read-only: you can't do this.",
+  },
+};
+
+window.pickLang = function () {
+  var saved = null;
+  try { saved = localStorage.getItem("proxlafy_lang"); } catch (e) {}
+  if (saved === "en" || saved === "es") return saved;
+  var n = (navigator.language || "es").toLowerCase();
+  return n.indexOf("es") === 0 ? "es" : "en";
+};

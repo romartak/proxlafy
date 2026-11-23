@@ -1,0 +1,15 @@
+[Unit]
+Description=Proxlafy web panel (Proxmark3 RFID) · panel web (RFID Proxmark3)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/proxlafy/proxlafy_server.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=PROXLAFY_CONF=/etc/proxlafy/proxlafy.conf
+
+[Install]
+WantedBy=multi-user.target

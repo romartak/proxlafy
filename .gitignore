@@ -1,0 +1,8 @@
+# Datos locales y de ejecución (no se versionan)
+data/
+*.pyc
+__pycache__/
+*.log
+.env
+# Volcados de tarjetas y estado del dispositivo
+files/web/*.map

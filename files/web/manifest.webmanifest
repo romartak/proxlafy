@@ -1,0 +1,12 @@
+{
+  "name": "Proxlafy",
+  "short_name": "Proxlafy",
+  "description": "Panel RFID para Proxmark3 en Raspberry Pi · RFID panel for Proxmark3 on Raspberry Pi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0e12",
+  "theme_color": "#0b0e12",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
