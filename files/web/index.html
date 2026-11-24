@@ -127,17 +127,28 @@
       </div>
       <div class="section-head"><h2 data-i18n="emit_from_lib">Emitir desde la biblioteca</h2></div>
       <div id="emit-quick" class="library"><p id="emit-empty" class="muted empty" data-i18n="lib_empty">Aún no hay tarjetas.</p></div>
+
+      <div class="card wipe-card">
+        <div class="section-head"><h2 data-i18n="wipe_title">Limpiar tarjeta física</h2></div>
+        <p class="muted small" data-i18n="wipe_hint">Borra una tarjeta regrabable/magic para dejarla en blanco. Luego ve a Biblioteca → elige una → «Clonar a tarjeta física» para grabarle otra encima.</p>
+        <div id="wipe-btns" class="btn-row"></div>
+      </div>
     </section>
 
     <!-- VIEW: LIBRARY -->
     <section id="view-library" class="view" hidden>
       <div class="lib-tools">
-        <input id="lib-search" type="search" data-i18n-ph="search" placeholder="Buscar…" autocomplete="off">
+        <input id="lib-search" type="search" data-i18n-ph="search_ph2" placeholder="Buscar por nombre, UID, FC, CN, etiqueta…" autocomplete="off">
         <div class="seg small filter">
           <button class="seg-btn active" data-filter="all" data-i18n="all">Todas</button>
           <button class="seg-btn" data-filter="lf">LF</button>
           <button class="seg-btn" data-filter="hf">HF</button>
         </div>
+      </div>
+      <div class="lib-io">
+        <button id="lib-export" class="btn btn-ghost sm">⤓ <span data-i18n="export">Exportar</span></button>
+        <button id="lib-import" class="btn btn-ghost sm">⤒ <span data-i18n="import">Importar</span></button>
+        <input id="lib-import-file" type="file" accept="application/json,.json" hidden>
       </div>
       <div id="library" class="library" aria-live="polite">
         <p id="lib-empty" class="muted empty" data-i18n="lib_empty">Aún no hay tarjetas. Lee una y pulsa Guardar.</p>

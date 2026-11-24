@@ -409,6 +409,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"ok": True, "update": self.app.update_check()})
         if path == "/api/update/log":
             return self._send_json({"ok": True, "log": self.app.update_log()})
+        if path == "/api/library/export":
+            cards = self.app.lib.list()
+            return self._send_json({"ok": True, "app": "proxlafy", "version": read_version(),
+                                    "exported": time.time(), "count": len(cards), "cards": cards})
+        if path == "/api/wipe":
+            return self._send_json({"ok": True, "kinds": PM3.wipe_kinds()})
         m = re.match(r"^/api/cards/([^/]+)$", path)
         if m:
             card = self.app.lib.get(m.group(1))
@@ -573,6 +579,37 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"ok": False, "error": "actualizador no disponible · updater not available"}, 400)
             return self._send_json({"ok": True, "started": True})
 
+        if path == "/api/library/import":
+            if not self._require("admin"):
+                return
+            cards = body.get("cards")
+            if not isinstance(cards, list):
+                return self._send_json({"ok": False, "error": "formato inválido · invalid format"}, 400)
+            n = 0
+            for c in cards:
+                if not isinstance(c, dict) or not c.get("type"):
+                    continue
+                c = dict(c)
+                for k in ("id", "created", "updated"):
+                    c.pop(k, None)
+                self.app.lib.save(c)
+                n += 1
+            self.app.log.add("Biblioteca importada · library imported: %d" % n, "ok")
+            return self._send_json({"ok": True, "imported": n})
+
+        if path == "/api/wipe":
+            if not self._require("admin"):
+                return
+            kind = str(body.get("kind", "t5577"))
+            self.app.log.add("Limpiando tarjeta física · wiping blank: %s" % kind, "warn")
+            try:
+                res = self.app.pm.wipe(kind)
+            except Exception as e:  # noqa: BLE001
+                return self._send_json({"ok": False, "error": str(e)}, 500)
+            self.app.log.add("Wipe: %s" % ("OK" if res.get("ok") else "falló · failed"),
+                             "ok" if res.get("ok") else "err")
+            return self._send_json({"ok": res.get("ok", False), "result": res})
+
         if path == "/api/switch":
             if not self._require("admin"):
                 return
@@ -611,6 +648,11 @@ class Handler(BaseHTTPRequestHandler):
                 card["name"] = str(body["name"])[:80]
             if "notes" in body:
                 card["notes"] = str(body["notes"])[:500]
+            if "tags" in body:
+                tags = body.get("tags") or []
+                if isinstance(tags, str):
+                    tags = [t.strip() for t in tags.split(",")]
+                card["tags"] = [str(t).strip()[:24] for t in tags if str(t).strip()][:12]
             saved = self.app.lib.save(card)
             return self._send_json({"ok": True, "card": saved})
         return self._send_json({"ok": False, "error": "unknown"}, 404)

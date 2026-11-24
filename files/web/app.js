@@ -85,7 +85,7 @@
     $(".seg-nav").style.setProperty("--active", idx);
     ["read", "scan", "emit", "library", "system"].forEach(function (v) { $id("view-" + v).hidden = v !== name; });
     if (name === "library") refreshCards();
-    if (name === "emit") refreshCards().then(renderEmit);
+    if (name === "emit") { refreshCards().then(renderEmit); loadWipe(); }
     if (name === "scan") refreshHistory();
     if (name === "system") { loadStandalone(); loadDevice(); }
   }
@@ -287,6 +287,7 @@
     if (ctx === "sheet") {
       h += '<div class="sheet-field"><label>' + T("name") + '</label><input id="sf-name" type="text" maxlength="80" value="' + esc(card.name || "") + '"></div>';
       h += '<div class="sheet-field"><label>' + T("notes") + '</label><textarea id="sf-notes" rows="2" maxlength="500">' + esc(card.notes || "") + "</textarea></div>";
+      h += '<div class="sheet-field"><label>' + T("tags") + '</label><input id="sf-tags" type="text" maxlength="200" placeholder="' + esc(T("tags_ph")) + '" value="' + esc((card.tags || []).join(", ")) + '"></div>';
       h += '<div class="btn-row"><button class="btn" data-a="savemeta">' + T("save") + '</button><button class="btn btn-ghost" data-a="del">🗑 ' + T("del") + "</button></div>";
     }
     if (card.raw_output) h += '<details class="console grow adv" style="padding:0;margin-top:10px;border:0"><summary class="small muted">' + T("raw") + '</summary><div class="sheet-raw">' + esc(card.raw_output.trim()) + "</div></details>";
@@ -331,7 +332,8 @@
         if (btn) { btn.disabled = false; btn.textContent = "⎘ " + T("write_to"); }
       });
     } else if (a === "savemeta") {
-      api("/api/cards/" + card.id, { method: "PATCH", body: { name: $id("sf-name").value, notes: $id("sf-notes").value } })
+      var tagsVal = ($id("sf-tags") ? $id("sf-tags").value : "").split(",").map(function (t) { return t.trim(); }).filter(Boolean);
+      api("/api/cards/" + card.id, { method: "PATCH", body: { name: $id("sf-name").value, notes: $id("sf-notes").value, tags: tagsVal } })
         .then(function (j) { if (j.ok) { toast(T("save") + " ✓", "ok"); closeSheet(); refreshCards(); } });
     } else if (a === "del") {
       if (!confirm(T("confirm_del"))) return;
@@ -361,7 +363,11 @@
   function filtered() {
     return state.cards.filter(function (c) {
       if (state.filter !== "all" && c.band !== state.filter) return false;
-      if (state.query) { var hay = (c.name || "") + " " + (c.type || "") + " " + (c.label || ""); if (hay.toLowerCase().indexOf(state.query) < 0) return false; }
+      if (state.query) {
+        var d = c.data || {};
+        var hay = [c.name, c.type, c.label, d.uid, d.id, d.fc, d.cn, d.csn, (c.tags || []).join(" ")].join(" ");
+        if (hay.toLowerCase().indexOf(state.query) < 0) return false;
+      }
       return true;
     });
   }
@@ -382,10 +388,13 @@
     if (caps.emulable) flags += '<span title="emulable">▶</span>';
     if (caps.clonable) flags += '<span title="clonable">⎘</span>';
     if (caps.secure) flags += '<span class="on-sec" title="secure">🔒</span>';
+    var tagsHtml = (c.tags && c.tags.length)
+      ? '<span class="tag-chips">' + c.tags.slice(0, 4).map(function (t) { return '<span class="tchip">' + esc(t) + "</span>"; }).join("") + "</span>"
+      : "";
     b.innerHTML =
       '<span class="badge ' + c.band + '">' + c.band.toUpperCase() + "</span>" +
       '<span class="tag-title"><span class="tag-name">' + esc(c.name || c.type) + "</span>" +
-      '<span class="tag-sub">' + esc(c.type + " · " + (c.label || "")) + "</span></span>" +
+      '<span class="tag-sub">' + esc(c.type + " · " + (c.label || "")) + "</span>" + tagsHtml + "</span>" +
       '<span class="tag-flags">' + flags + "</span>";
     b.onclick = function () { openSheet(c); };
     if (!reduce) b.addEventListener("animationend", function () { b.classList.remove("fresh"); }, { once: true });
@@ -394,6 +403,56 @@
   function markSimming() {
     var id = (state.sim && state.sim.id) || (state.pending && state.pending.id);
     document.querySelectorAll("#library .tag").forEach(function (n) { n.classList.toggle("simming", n.getAttribute("data-id") === id); });
+  }
+
+  // ------------------------------------------------ export / import / wipe
+  (function () {
+    var exp = $id("lib-export"), imp = $id("lib-import"), impFile = $id("lib-import-file");
+    if (exp) exp.onclick = function () {
+      api("/api/library/export").then(function (j) {
+        if (!j.ok) { toast(T("err_generic"), "err"); return; }
+        try {
+          var blob = new Blob([JSON.stringify(j, null, 2)], { type: "application/json" });
+          var url = URL.createObjectURL(blob), a = document.createElement("a");
+          a.href = url; a.download = "proxlafy-biblioteca-" + new Date().toISOString().slice(0, 10) + ".json";
+          document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+          toast(T("exported_ok") + " (" + (j.count || 0) + ")", "ok");
+        } catch (e) { toast(T("err_generic"), "err"); }
+      });
+    };
+    if (imp) imp.onclick = function () { impFile.click(); };
+    if (impFile) impFile.onchange = function (e) {
+      var f = e.target.files && e.target.files[0]; if (!f) return;
+      var r = new FileReader();
+      r.onload = function () {
+        var cards;
+        try { var data = JSON.parse(r.result); cards = Array.isArray(data) ? data : data.cards; } catch (x) { toast(T("import_bad"), "err"); return; }
+        if (!Array.isArray(cards)) { toast(T("import_bad"), "err"); return; }
+        api("/api/library/import", { method: "POST", body: { cards: cards } }).then(function (j) {
+          if (j.ok) { toast(T("imported_ok") + ": " + j.imported, "ok"); refreshCards(); }
+          else toast(j.error || T("err_generic"), "err");
+        });
+      };
+      r.readAsText(f); e.target.value = "";
+    };
+  })();
+  function loadWipe() {
+    var box = $id("wipe-btns"); if (!box || box.dataset.loaded) return;
+    api("/api/wipe").then(function (j) {
+      var kinds = (j && j.kinds) || [];
+      box.dataset.loaded = "1";
+      box.innerHTML = kinds.map(function (k) { return '<button class="btn" data-wipe="' + esc(k.kind) + '">🧹 ' + esc(k.label) + "</button>"; }).join("");
+      box.querySelectorAll("[data-wipe]").forEach(function (b) {
+        b.onclick = function () {
+          if (!confirm(T("wipe_confirm"))) return;
+          b.disabled = true; var orig = b.innerHTML; b.textContent = T("wiping");
+          api("/api/wipe", { method: "POST", body: { kind: b.getAttribute("data-wipe") } }).then(function (r) {
+            toast(r.ok ? T("wipe_ok") : ((r.result && (r.result.output || "").slice(-120)) || r.error || T("err_generic")), r.ok ? "ok" : "err");
+            b.disabled = false; b.innerHTML = orig;
+          }).catch(function () { b.disabled = false; b.innerHTML = orig; });
+        };
+      });
+    });
   }
 
   // ------------------------------------------------ bottom sheet
@@ -654,7 +713,6 @@
   applyI18n(); boot();
   setInterval(refreshStatus, 2500);
   setInterval(refreshLog, 1500);
-})();
 
   // ------------------------------------------------ self-update from the panel
   (function () {
@@ -698,3 +756,4 @@
       }, 3000);
     }
   })();
+})();

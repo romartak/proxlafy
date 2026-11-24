@@ -358,6 +358,33 @@ class PM3:
                     result["verified"] = None
         return result
 
+    # ================================================================ wipe a physical blank
+    _WIPE = {
+        "t5577": "lf t55xx wipe",
+        "em4305": "lf em 4x05 wipe",
+        "mifare": "hf mf wipe --gen1a",
+    }
+    _WIPE_LABEL = {
+        "t5577": "T5577 (LF blank · blanco LF)",
+        "em4305": "EM4305 (LF blank · blanco LF)",
+        "mifare": "magic MIFARE gen1a (HF blank · blanco HF)",
+    }
+
+    def wipe(self, kind="t5577"):
+        """Erase a rewritable/magic card back to blank so a library card can be written onto it."""
+        cmd = self._WIPE.get(kind)
+        if not cmd:
+            raise RuntimeError("tipo de blanco no soportado · unsupported blank: %s" % kind)
+        if self.demo:
+            return {"ok": True, "kind": kind, "command": cmd, "output": "demo: tarjeta limpiada · card wiped"}
+        out = self.run(cmd, timeout=90)
+        ok = any(w in out.lower() for w in ("done", "wiped", "success", "ok", "written"))
+        return {"ok": bool(ok), "kind": kind, "command": cmd, "output": out[-2000:]}
+
+    @classmethod
+    def wipe_kinds(cls):
+        return [{"kind": k, "label": cls._WIPE_LABEL[k], "command": cls._WIPE[k]} for k in cls._WIPE]
+
     # ================================================================ device / antenna
     def device_status(self):
         """Antenna health (LF/HF voltages) from `hw tune`, plus connection + standalone."""

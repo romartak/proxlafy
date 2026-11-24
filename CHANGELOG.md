@@ -2,6 +2,28 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.7.0
+
+**Wipe a blank and re-clone · Limpiar un blanco y reclonar** (your request)
+- New **Wipe a physical card** tool (Emit tab): erases a rewritable/magic card back to blank
+  (T5577, EM4305, magic MIFARE gen1a). Then pick any saved card in the Library → **Clone to physical card**
+  to write it on top. `POST /api/wipe`, `GET /api/wipe`.
+- Nueva herramienta **Limpiar tarjeta física**: deja en blanco una regrabable/magic; luego eliges una de la
+  biblioteca y la **clonas** encima.
+
+**Library power-ups · Biblioteca con superpoderes**
+- **Search by name, UID, FC, CN or tag.** · Búsqueda por nombre, UID, FC, CN o etiqueta.
+- **Tags** per card (add in the card sheet; shown as chips). · **Etiquetas** por tarjeta.
+- **Export / Import** the whole library as a JSON file (backup or move between Pis). `GET /api/library/export`,
+  `POST /api/library/import`. · **Exportar / Importar** toda la biblioteca como archivo JSON.
+
+**GUI & motion · Interfaz y animaciones**
+- View entrance transitions, tag-chip pop-in, card press feedback, a pulsing "connected" dot — all respecting
+  reduced-motion. · Transiciones de entrada, feedback al pulsar y punto de "conectado" con pulso.
+
+**Fixes**
+- Reader detection is robust across RDV4 and Easy/generic boards (shown in 0.6.0, kept here).
+
 ## 0.6.0
 
 **Update from the panel · Actualizar desde el panel**
