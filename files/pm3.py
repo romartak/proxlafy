@@ -103,7 +103,7 @@ class PM3:
             self._online = False
             self._last_err = "sin Proxmark conectado · no Proxmark connected"
             return False
-        args = [port]
+        args = ["-p", port]
         try:
             self._child = pexpect.spawn(self.client, args, encoding="utf-8", codec_errors="replace",
                                         timeout=30, echo=False, dimensions=(60, 220))

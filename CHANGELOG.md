@@ -2,6 +2,14 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.5.2
+
+**Fix: connect to the Proxmark with `-p <port>`**
+- The client was launched with the port as a bare argument (`pm3 /dev/pm3-0`), which made it print usage and
+  exit (EOF). Now it uses the canonical `pm3 -p <port>`, so it connects to the reader properly.
+- El cliente se lanzaba con el puerto “suelto” y el programa imprimía su ayuda y salía. Ahora usa
+  `pm3 -p <puerto>` y se conecta bien al lector.
+
 ## 0.5.1
 
 **Fix: the panel no longer hangs when no Proxmark is connected**
