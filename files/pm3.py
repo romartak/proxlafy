@@ -131,9 +131,13 @@ class PM3:
             return True
         if not self._spawn() or self._child is None:
             return False
+        # Reaching the `pm3 -->` prompt over `-p <port>` already means a Proxmark answered.
+        # Confirm it still talks by running `hw status`: if the command returns to the prompt
+        # (no timeout), the device is connected — regardless of the exact wording, which varies
+        # between hardware (RDV4, Easy/generic…) and firmware versions.
         try:
-            out = self._raw("hw status", timeout=8)
-            return "Proxmark3" in out or "ARM" in out or "USB" in out
+            self._raw("hw status", timeout=10)
+            return True
         except Exception:  # noqa: BLE001
             return False
 

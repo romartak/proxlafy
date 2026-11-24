@@ -2,6 +2,22 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.6.0
+
+**Update from the panel · Actualizar desde el panel**
+- New **Updates** controls in System: **Check for updates** (shows current → latest and the list of changes)
+  and **Update now** — it pulls from GitHub, shows the live log, restarts, and **reloads the page by itself**
+  when the panel comes back. Auto-rollback still protects a bad update. No SSH needed. (`GET`/`POST /api/update`,
+  `GET /api/update/log`.)
+- Nueva sección **Actualizaciones** en Sistema: **Buscar actualizaciones** y **Actualizar ahora**, con registro
+  en vivo y recarga automática del panel al terminar. Sin necesidad de SSH. Mantiene el auto-rollback.
+
+**Fix: the reader now shows as connected when it works**
+- Device detection no longer depends on exact wording of `hw status` (which varies between RDV4 and
+  Easy/generic boards). If the Proxmark answers `hw status` at all, the panel shows it **connected**.
+- La detección ya no depende del texto exacto de `hw status`; si el Proxmark responde, el panel lo marca
+  **conectado** (antes podía leer tarjetas y aun así decir "no detectado").
+
 ## 0.5.2
 
 **Fix: connect to the Proxmark with `-p <port>`**

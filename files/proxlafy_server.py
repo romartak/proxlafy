@@ -259,6 +259,41 @@ class App:
             subprocess.Popen(["setsid", "/bin/bash", "-c", cmd], start_new_session=True)
         return state
 
+    # -------------------------------------------------- self-update from the panel
+    UPDATER = "/opt/proxlafy/proxlafy-update.sh"
+    UPDATE_LOG = "/var/log/proxlafy-update.log"
+
+    def update_check(self):
+        """Ask the updater (git fetch) whether a newer version is on GitHub."""
+        if self.pm.demo or not os.path.exists(self.UPDATER):
+            return {"ok": True, "demo": True, "behind": 0, "current": read_version(), "changes": []}
+        try:
+            out = subprocess.check_output(["bash", self.UPDATER, "--check", "--json"],
+                                          timeout=50, stderr=subprocess.STDOUT).decode("utf-8", "replace")
+            return json.loads(out.strip().splitlines()[-1])
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "error": str(e)}
+
+    def update_log(self, maxlen=8000):
+        try:
+            with open(self.UPDATE_LOG, "r", encoding="utf-8", errors="replace") as f:
+                return f.read()[-maxlen:]
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def start_update(self):
+        """Launch the updater detached (survives this panel restarting) with auto-rollback."""
+        if not os.path.exists(self.UPDATER):
+            return False
+        self.log.add("Actualizando desde el panel · updating from the panel…", "warn")
+        cmd = "sleep 1; exec bash %s --yes" % self.UPDATER
+        if shutil.which("systemd-run"):
+            subprocess.Popen(["systemd-run", "--collect", "--unit=proxlafy-update",
+                              "/bin/bash", "-c", cmd])
+        else:
+            subprocess.Popen(["setsid", "/bin/bash", "-c", cmd], start_new_session=True)
+        return True
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "Proxlafy"
@@ -370,6 +405,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"ok": True, "history": self.app.history})
         if path == "/api/switch":
             return self._send_json({"ok": True, "switch": self.app.switch_state()})
+        if path == "/api/update":
+            return self._send_json({"ok": True, "update": self.app.update_check()})
+        if path == "/api/update/log":
+            return self._send_json({"ok": True, "log": self.app.update_log()})
         m = re.match(r"^/api/cards/([^/]+)$", path)
         if m:
             card = self.app.lib.get(m.group(1))
@@ -525,6 +564,14 @@ class Handler(BaseHTTPRequestHandler):
             self.app.pm.stop_sim()
             self.app.log.add("Emulación detenida · emulation stopped")
             return self._send_json({"ok": True})
+
+        if path == "/api/update":
+            if not self._require("admin"):
+                return
+            started = self.app.start_update()
+            if not started:
+                return self._send_json({"ok": False, "error": "actualizador no disponible · updater not available"}, 400)
+            return self._send_json({"ok": True, "started": True})
 
         if path == "/api/switch":
             if not self._require("admin"):

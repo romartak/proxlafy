@@ -655,3 +655,46 @@
   setInterval(refreshStatus, 2500);
   setInterval(refreshLog, 1500);
 })();
+
+  // ------------------------------------------------ self-update from the panel
+  (function () {
+    var checkBtn = $id("btn-update-check"), applyBtn = $id("btn-update-apply");
+    if (!checkBtn) return;
+    var statusEl = $id("update-status"), logEl = $id("update-log");
+    checkBtn.onclick = function () {
+      statusEl.textContent = T("update_checking"); checkBtn.disabled = true; applyBtn.hidden = true;
+      api("/api/update").then(function (j) {
+        checkBtn.disabled = false;
+        var u = (j && j.update) || {};
+        if (u.demo) { statusEl.textContent = T("update_demo"); return; }
+        if (u.ok === false) { statusEl.textContent = T("err_generic") + " " + (u.error || ""); return; }
+        if (!u.behind) { statusEl.textContent = T("update_uptodate") + " (" + esc(u.current || state.version) + ")"; return; }
+        var changes = (u.changes || []).slice(0, 8).map(function (c) { return "• " + esc(c); }).join("<br>");
+        statusEl.innerHTML = T("update_available").replace("%from", esc(u.current || "")).replace("%to", esc(u.latest || "?")).replace("%n", u.behind) +
+          (changes ? '<div class="muted small" style="margin-top:6px">' + changes + "</div>" : "");
+        applyBtn.hidden = false;
+      }).catch(function () { checkBtn.disabled = false; statusEl.textContent = T("err_generic"); });
+    };
+    applyBtn.onclick = function () {
+      applyBtn.disabled = true; checkBtn.disabled = true;
+      statusEl.textContent = T("update_running"); logEl.hidden = false; logEl.textContent = "";
+      api("/api/update", { method: "POST", body: {} }).then(function (j) {
+        if (j && j.ok === false) { statusEl.textContent = j.error || T("err_generic"); applyBtn.disabled = false; checkBtn.disabled = false; return; }
+        pollUpdate();
+      }).catch(pollUpdate);
+    };
+    function pollUpdate() {
+      var wentDown = false, tries = 0;
+      var iv = setInterval(function () {
+        tries++;
+        if (tries > 100) { clearInterval(iv); statusEl.textContent = T("update_timeout"); return; }
+        fetch("/api/update/log", { cache: "no-store" }).then(function (r) { return r.json(); })
+          .then(function (j) { if (j && j.log) { logEl.textContent = j.log; logEl.scrollTop = logEl.scrollHeight; } }).catch(function () {});
+        fetch("/api/status", { cache: "no-store" }).then(function (r) { return r.ok; })
+          .then(function (ok) {
+            if (!ok) { wentDown = true; return; }
+            if (wentDown) { clearInterval(iv); statusEl.textContent = T("update_done"); setTimeout(function () { location.reload(); }, 2500); }
+          }).catch(function () { wentDown = true; });
+      }, 3000);
+    }
+  })();
