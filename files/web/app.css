@@ -380,3 +380,22 @@ body.expert .adv { display: block; }
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 22px); translate: -50% 0; background: var(--card-2); color: var(--text); border: 1px solid var(--line-2); box-shadow: var(--shadow); padding: 11px 18px; border-radius: 24px; z-index: 90; font-size: .88rem; max-width: 90%; }
 @media (prefers-reduced-motion: no-preference) { .toast { animation: rise-in .22s var(--ease-out); } }
 .toast.err { border-color: var(--danger); } .toast.ok { border-color: var(--ok); }
+
+/* ---------- Secret lab switch · Conmutador de laboratorio ---------- */
+.warn-box { background: rgba(255,176,32,.12); border: 1px solid var(--secure); color: var(--text);
+  border-radius: var(--radius-sm); padding: 10px 12px; font-size: .84rem; line-height: 1.45; margin: 10px 0; }
+.warn-box b { color: var(--text); }
+.switching { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(6px);
+  padding: 24px; text-align: center; }
+.switching-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 28px 22px; max-width: 420px; width: 100%; }
+.switching-card h2 { margin: 6px 0 8px; font-size: 1.15rem; }
+.switching-card p { margin: 0; line-height: 1.5; font-size: .9rem; }
+.switching-card p b { color: var(--text); }
+.switching .eh-wave { display: inline-flex; gap: 4px; align-items: flex-end; height: 30px; margin-bottom: 6px; }
+.switching .eh-wave i { width: 5px; background: var(--accent); border-radius: 2px; animation: wave 1s ease-in-out infinite; }
+.switching .eh-wave i:nth-child(1){height:40%;animation-delay:0s} .switching .eh-wave i:nth-child(2){height:80%;animation-delay:.12s}
+.switching .eh-wave i:nth-child(3){height:55%;animation-delay:.24s} .switching .eh-wave i:nth-child(4){height:100%;animation-delay:.36s}
+.switching .eh-wave i:nth-child(5){height:65%;animation-delay:.48s}
+@media (prefers-reduced-motion: reduce) { .switching .eh-wave i { animation: none; } }

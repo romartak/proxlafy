@@ -2,6 +2,23 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.5.0
+
+**Lab switch · Conmutador de laboratorio (Proxlafy ⇄ SDR-Kit)**
+- Both projects can live on the same microSD; a new `labswitch` tool flips which one is active —
+  **instantly, offline, with no reinstall** (they share the WiFi hotspot and port 80, so only one runs).
+  Los dos proyectos pueden convivir en la misma microSD; `labswitch` cambia cuál está activo **al
+  instante, sin internet y sin reinstalar** (comparten el hotspot y el puerto 80, solo corre uno).
+- **Secret button in the panel**: long-press (≈1 s) or triple-tap the Proxlafy logo → a sheet to hand
+  control to SDR-Kit, warning that the WiFi will change (SSID + address to reconnect to). Admin only.
+  **Botón secreto en el panel**: mantén pulsado (≈1 s) o toca tres veces el logo → una hoja para pasar
+  el control a SDR-Kit, avisando que la WiFi cambiará (SSID + dirección para reconectarte). Solo admin.
+- If the other project isn't installed yet, the button offers to **install it from GitHub** (needs internet).
+  Si el otro proyecto aún no está instalado, el botón ofrece **instalarlo desde GitHub** (necesita internet).
+- CLI: `sudo proxlafy switch` (cambiar) and `proxlafy labs` (list installed projects).
+- The installer pauses the other project automatically so there's no port/hotspot clash. See `docs/conmutador.md`.
+- New API: `GET/POST /api/switch`. The switch runs detached (systemd-run) so it survives this panel stopping.
+
 ## 0.4.0
 
 **Emit hub · Centro de emisión** (new tab)

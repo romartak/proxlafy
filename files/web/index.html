@@ -200,6 +200,21 @@
     </div>
   </dialog>
 
+  <!-- Secret lab switch · Conmutador secreto de laboratorio (long-press on the logo) -->
+  <dialog id="labsheet" class="sheet">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div id="labsheet-body" class="sheet-body"></div>
+  </dialog>
+
+  <!-- Full-screen switch overlay · Aviso a pantalla completa al cambiar -->
+  <div id="switching" class="switching" hidden>
+    <div class="switching-card">
+      <div class="eh-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <h2 id="switching-title" data-i18n="switch_doing">Cambiando de proyecto…</h2>
+      <p id="switching-msg" class="muted"></p>
+    </div>
+  </div>
+
   <div id="toast" class="toast" hidden></div>
 
   <script src="i18n.js"></script>

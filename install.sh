@@ -55,9 +55,23 @@ install_panel() {
   cp -a "$KIT/VERSION" "$OPT/VERSION" 2>/dev/null
   chmod 755 "$OPT/proxlafy-cli.sh" "$OPT/proxlafy-update.sh" "$OPT/proxlafy-netwatch.sh" 2>/dev/null
   install -m 755 "$OPT/proxlafy-cli.sh" /usr/local/bin/proxlafy
+  [ -f "$OPT/labswitch.sh" ] && install -m 755 "$OPT/labswitch.sh" /usr/local/sbin/labswitch
   install -m 644 "$OPT/proxlafy.service" /etc/systemd/system/proxlafy.service
   install -m 644 "$OPT/proxlafy-netwatch.service" /etc/systemd/system/proxlafy-netwatch.service
   systemctl daemon-reload
+}
+
+# If SDR-Kit (the other lab project) is installed and running, pause it so Proxlafy
+# can take the hotspot and port 80. It stays installed; switch back any time.
+# Si SDR-Kit (el otro proyecto) está instalado y activo, lo pausamos para que Proxlafy
+# tome el hotspot y el puerto 80. Queda instalado; puedes volver cuando quieras.
+pause_other_project() {
+  [ -f /etc/systemd/system/sdrkit.service ] || return 0
+  if systemctl is-active --quiet sdrkit 2>/dev/null || systemctl is-enabled --quiet sdrkit 2>/dev/null; then
+    systemctl disable --now sdrkit sdrkit-netwatch >/dev/null 2>&1
+    nmcli connection down sdrkit-hotspot >/dev/null 2>&1
+    ok "SDR-Kit paused (switch back: sudo labswitch sdrkit)." "SDR-Kit pausado (vuelve con: sudo labswitch sdrkit)."
+  fi
 }
 
 merge_conf_from_kit() {
@@ -162,6 +176,7 @@ usermod -aG dialout root 2>/dev/null || true
 step "Installing the Proxlafy panel" "Instalando el panel Proxlafy"
 install_panel
 record_rev
+pause_other_project
 systemctl enable proxlafy >/dev/null 2>&1
 systemctl restart proxlafy
 ok "Panel service enabled." "Servicio del panel activado."

@@ -9,6 +9,8 @@
 #    proxlafy rollback      previous version · versión anterior
 #    proxlafy restart       restart the panel · reiniciar el panel
 #    proxlafy hotspot       force the hotspot (auto releases it) · forzar hotspot (auto lo libera)
+#    proxlafy switch        switch to the other lab project (SDR-Kit) · cambiar al otro proyecto (SDR-Kit)
+#    proxlafy labs          list installed lab projects · listar proyectos instalados
 #    proxlafy config        edit proxlafy.conf · editar la configuración
 #    proxlafy version       installed version · versión instalada
 #  Spanish aliases work too · Los alias en español también funcionan.
@@ -63,13 +65,21 @@ case "$cmd" in
     proxlafy_set_conf VIEWER_PASSWORD "$pw" "$CONF"; systemctl restart proxlafy
     L "Done." "Listo."
     ;;
+  switch|cambiar)
+    need_root "switch"
+    if [ -x /usr/local/sbin/labswitch ]; then exec /usr/local/sbin/labswitch "${1:-other}"
+    else L "labswitch not installed." "labswitch no está instalado."; exit 1; fi
+    ;;
+  labs|proyectos)
+    [ -x /usr/local/sbin/labswitch ] && exec /usr/local/sbin/labswitch status || { L "labswitch not installed." "labswitch no está instalado."; exit 1; }
+    ;;
   version|versión|-v|--version)
     echo "proxlafy $(cat "$OPT/VERSION" 2>/dev/null || echo '?')"
     repo="${PROXLAFY_REPO:-$(git -C /opt/proxlafy-src remote get-url origin 2>/dev/null)}"
     echo "repo: ${repo:-$PROXLAFY_DEFAULT_REPO}  ·  branch: ${PROXLAFY_BRANCH:-main}"
     ;;
   help|ayuda|-h|--help)
-    sed -n '3,18p' "$OPT/proxlafy-cli.sh" | sed 's/^#\s\?//'
+    sed -n '3,16p' "$OPT/proxlafy-cli.sh" | sed 's/^#\s\?//'
     ;;
   *)
     L "Unknown command: $cmd  (try: proxlafy help)" "Comando desconocido: $cmd  (prueba: proxlafy ayuda)"; exit 1

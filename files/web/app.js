@@ -446,6 +446,69 @@
   $id("help-btn").onclick = openHelp;
   help.addEventListener("click", function (e) { if (e.target === help) { try { help.close(); } catch (x) { help.removeAttribute("open"); } } });
 
+  // ------------------------------------------------ secret lab switch (Proxlafy ⇄ SDR-Kit)
+  var labsheet = $id("labsheet");
+  function canSwitch() { return state.role === "admin" || state.authOpen; }
+  function openLabSheet() {
+    var body = $id("labsheet-body");
+    body.innerHTML = '<div class="sheet-head"><span class="sheet-title">' + esc(T("switch_title")) + "</span></div>" +
+      '<p class="muted small">' + esc(T("switch_loading")) + "</p>";
+    if (typeof labsheet.showModal === "function") { if (!labsheet.open) labsheet.showModal(); } else labsheet.setAttribute("open", "");
+    api("/api/switch").then(function (j) { renderLabSheet((j && j.switch) || { enabled: false }); })
+      .catch(function () { renderLabSheet({ enabled: false }); });
+  }
+  function renderLabSheet(s) {
+    var body = $id("labsheet-body");
+    var h = '<div class="sheet-head"><span class="sheet-title">' + esc(T("switch_title")) + "</span></div>";
+    if (!s.enabled) { body.innerHTML = h + '<p class="muted">' + esc(T("switch_na")) + "</p>"; return; }
+    var other = esc(s.other_label || "SDR-Kit");
+    var curLabel = esc(s.current_label || "Proxlafy");
+    h += '<p class="muted small">' + esc(T("switch_active")) + ": <b>" + curLabel + "</b></p>";
+    if (s.other_installed) {
+      h += "<p>" + T("switch_to").replace("%s", "<b>" + other + "</b>") + "</p>";
+      h += '<div class="warn-box">' + T("switch_warn").replace("%ssid", "<b>" + esc(s.other_ssid || "") + "</b>")
+             .replace("%ip", "<b>http://" + esc(s.other_ip || "192.168.4.1") + "</b>") + "</div>";
+      h += '<button class="btn btn-primary btn-big" id="lab-go">' + T("switch_btn").replace("%s", other) + "</button>";
+    } else {
+      h += '<p class="muted">' + T("switch_notinst").replace("%s", "<b>" + other + "</b>") + "</p>";
+      h += '<div class="warn-box">' + esc(T("switch_neednet")) + "</div>";
+      h += '<button class="btn btn-primary btn-big" id="lab-install">' + T("switch_installbtn").replace("%s", other) + "</button>";
+    }
+    h += '<button class="btn btn-ghost btn-big" id="lab-cancel" style="margin-top:8px">' + esc(T("cancel")) + "</button>";
+    body.innerHTML = h;
+    var go = $id("lab-go"), inst = $id("lab-install"), cancel = $id("lab-cancel");
+    if (go) go.onclick = function () { doSwitch(false, s); };
+    if (inst) inst.onclick = function () { doSwitch(true, s); };
+    if (cancel) cancel.onclick = closeLab;
+  }
+  function closeLab() { if (labsheet.open) { try { labsheet.close(); } catch (e) { labsheet.removeAttribute("open"); } } }
+  labsheet.addEventListener("click", function (e) { if (e.target === labsheet) closeLab(); });
+  function doSwitch(install, s) {
+    closeLab();
+    var other = esc(s.other_label || "SDR-Kit"), ssid = s.other_ssid || "", ip = s.other_ip || "192.168.4.1";
+    var ov = $id("switching");
+    $id("switching-msg").innerHTML = install
+      ? T("switch_installing").replace("%s", other)
+      : T("switch_reconnect").replace("%ssid", "<b>" + esc(ssid) + "</b>").replace("%ip", "<b>http://" + esc(ip) + "</b>");
+    ov.hidden = false;
+    api("/api/switch", { method: "POST", body: { target: "other", install: !!install } }).then(function (j) {
+      if (!j.ok) { ov.hidden = true; toast(j.error || T("err_generic"), "err"); }
+    }).catch(function () { /* expected: our own panel goes down as the other starts */ });
+  }
+  (function () {
+    var brand = $(".brand"); if (!brand) return;
+    brand.style.webkitUserSelect = "none"; brand.style.userSelect = "none";
+    var timer = null, taps = 0, tapT = null;
+    function arm() { timer = setTimeout(function () { timer = null; if (canSwitch()) openLabSheet(); }, 1000); }
+    function disarm() { if (timer) { clearTimeout(timer); timer = null; } }
+    brand.addEventListener("pointerdown", arm);
+    ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) { brand.addEventListener(ev, disarm); });
+    brand.addEventListener("click", function () {
+      taps++; clearTimeout(tapT); tapT = setTimeout(function () { taps = 0; }, 600);
+      if (taps >= 3) { taps = 0; if (canSwitch()) openLabSheet(); }
+    });
+  })();
+
   // ------------------------------------------------ console log
   function refreshLog() {
     return api("/api/log?since=" + state.logCursor).then(function (j) {

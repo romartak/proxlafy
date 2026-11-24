@@ -21,9 +21,11 @@ import json
 import time
 import uuid
 import html
+import shutil
 import secrets
 import argparse
 import threading
+import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import HTTPStatus
 from urllib.parse import urlparse, parse_qs
@@ -223,6 +225,40 @@ class App:
     def logout(self, token):
         self._sessions.pop(token, None)
 
+    # -------------------------------------------------- lab switch (Proxlafy <-> SDR-Kit)
+    LABSWITCH = "/usr/local/sbin/labswitch"
+
+    def switch_state(self):
+        """State of the other RF-lab project, via `labswitch json`. {enabled:False} if unavailable."""
+        if not os.path.exists(self.LABSWITCH):
+            return {"enabled": False}
+        try:
+            out = subprocess.check_output([self.LABSWITCH, "json"], timeout=6).decode("utf-8", "replace")
+            data = json.loads(out.strip().splitlines()[-1])
+            data["enabled"] = True
+            return data
+        except Exception:  # noqa: BLE001
+            return {"enabled": False}
+
+    def start_switch(self, target, do_install=False):
+        """Launch the switch detached, so it survives this service being stopped. Returns the resolved state."""
+        state = self.switch_state()
+        if not state.get("enabled"):
+            return None
+        if target not in ("other", "proxlafy", "sdrkit"):
+            target = "other"
+        tgt = state.get("other") if target == "other" else target
+        arg = ("install %s" % tgt) if do_install else tgt
+        cmd = "sleep 2; exec %s %s" % (self.LABSWITCH, arg)
+        self.log.add("Cambiando de proyecto · switching lab project → %s%s"
+                     % (tgt, " (install)" if do_install else ""), "warn")
+        if shutil.which("systemd-run"):
+            subprocess.Popen(["systemd-run", "--collect", "--unit=proxlafy-switch",
+                              "/bin/bash", "-c", cmd])
+        else:
+            subprocess.Popen(["setsid", "/bin/bash", "-c", cmd], start_new_session=True)
+        return state
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "Proxlafy"
@@ -332,6 +368,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"ok": True, "device": dev})
         if path == "/api/history":
             return self._send_json({"ok": True, "history": self.app.history})
+        if path == "/api/switch":
+            return self._send_json({"ok": True, "switch": self.app.switch_state()})
         m = re.match(r"^/api/cards/([^/]+)$", path)
         if m:
             card = self.app.lib.get(m.group(1))
@@ -487,6 +525,18 @@ class Handler(BaseHTTPRequestHandler):
             self.app.pm.stop_sim()
             self.app.log.add("Emulación detenida · emulation stopped")
             return self._send_json({"ok": True})
+
+        if path == "/api/switch":
+            if not self._require("admin"):
+                return
+            target = str(body.get("target", "other")) or "other"
+            do_install = bool(body.get("install"))
+            state = self.app.start_switch(target, do_install)
+            if state is None:
+                return self._send_json({"ok": False, "error": "labswitch no disponible · not available"}, 400)
+            return self._send_json({"ok": True, "target": state.get("other"),
+                                    "label": state.get("other_label"), "ssid": state.get("other_ssid"),
+                                    "ip": state.get("other_ip"), "install": do_install})
 
         return self._send_json({"ok": False, "error": "unknown"}, 404)
 
