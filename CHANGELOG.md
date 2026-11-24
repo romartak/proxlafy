@@ -2,6 +2,16 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.5.1
+
+**Fix: the panel no longer hangs when no Proxmark is connected**
+- With the `pm3` client installed but no reader plugged in, the client's auto-detect scanned Bluetooth and
+  blocked, piling up processes and making the panel unresponsive. Now the server resolves the serial port
+  first (`/dev/ttyACM*`, `/dev/ttyUSB*`, `/dev/pm3-*`): if there's no device it reports *disconnected*
+  instantly, and when a device is present it launches `pm3 <port>` directly (no Bluetooth scan).
+- Con el cliente `pm3` instalado pero sin lector conectado, el autodetección escaneaba Bluetooth y se
+  colgaba. Ahora resuelve el puerto serie primero y, si no hay lector, responde *desconectado* al instante.
+
 ## 0.5.0
 
 **Lab switch · Conmutador de laboratorio (Proxlafy ⇄ SDR-Kit)**

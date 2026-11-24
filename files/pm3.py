@@ -18,6 +18,7 @@ Commands assume the Iceman firmware. On official firmware some syntaxes differ (
 import os
 import re
 import sys
+import glob
 import json
 import time
 import threading
@@ -75,6 +76,17 @@ class PM3:
         self._load_active()
 
     # ================================================================ session
+    def _find_port(self):
+        """Resolve the Proxmark serial port. Returns None when no device is plugged in,
+        so we never launch the `pm3` auto-detect (which can hang scanning Bluetooth)."""
+        if self.port and self.port != "auto":
+            return self.port
+        for pat in ("/dev/pm3-*", "/dev/ttyACM*", "/dev/ttyUSB*"):
+            hits = sorted(glob.glob(pat))
+            if hits:
+                return hits[0]
+        return None
+
     def _spawn(self):
         if self.demo:
             self._online = True
@@ -84,7 +96,14 @@ class PM3:
             return False
         if self._child is not None and self._child.isalive():
             return True
-        args = [] if (not self.port or self.port == "auto") else [self.port]
+        port = self._find_port()
+        if not port:
+            # No device connected: fail fast instead of launching pm3's auto-detect
+            # (which scans Bluetooth and hangs), keeping the panel responsive.
+            self._online = False
+            self._last_err = "sin Proxmark conectado · no Proxmark connected"
+            return False
+        args = [port]
         try:
             self._child = pexpect.spawn(self.client, args, encoding="utf-8", codec_errors="replace",
                                         timeout=30, echo=False, dimensions=(60, 220))
