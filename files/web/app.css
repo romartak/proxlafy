@@ -417,12 +417,51 @@ body.expert .adv { display: block; }
   .tchip { animation: chip-pop .2s var(--ease-out, ease); }
   @keyframes chip-pop { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
 }
-/* card press/lift feedback */
-.tag { transition: transform var(--t-press, .1s) ease, border-color .2s ease, background .2s ease; }
-.tag:active { transform: scale(.985); }
+/* card press feedback — animate `scale` (not `transform`) so the entrance transform survives */
+.tag { transition: scale var(--t-press) ease, border-color var(--t-state) ease, background var(--t-state) ease; }
+.tag:active { scale: .985; }
 @media (hover: hover) { .tag:hover { border-color: var(--line-2); } }
-/* connected device dot pulse */
-@media (prefers-reduced-motion: no-preference) {
-  .device.ok .device-dot, .dot.ok { animation: dot-pulse 2.4s ease-in-out infinite; }
-  @keyframes dot-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(39,197,143,.5); } 50% { box-shadow: 0 0 0 6px rgba(39,197,143,0); } }
+
+/* ---------- v0.8.0: accessibility (focus-visible), press, skeletons, sheet stagger ---------- */
+/* Keyboard focus ring on every interactive control (instant, never animated) */
+:where(button, a, input, textarea, select, summary, [tabindex], .tag, .seg-item, .seg-btn, .chip):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm);
 }
+:focus:not(:focus-visible) { outline: none; }
+/* Consistent press on chips and segmented controls */
+.chip, .seg-item, .seg-btn, .verchip { transition: scale var(--t-press) ease, background var(--t-state) ease, color var(--t-state) ease; }
+.chip:active, .seg-item:active, .seg-btn:active { scale: .94; }
+@media (hover: hover) { .chip:hover { border-color: var(--line-2); } }
+
+/* Skeleton shimmer for loading lists */
+.skel { border-radius: var(--radius-sm); background: var(--card-2); position: relative; overflow: hidden; }
+.skel-row { height: 64px; margin-bottom: 10px; }
+@media (prefers-reduced-motion: no-preference) {
+  .skel::after { content: ""; position: absolute; inset: 0; translate: -100% 0;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 8%, transparent), transparent);
+    animation: skel-slide 1.25s ease-in-out infinite; }
+  @keyframes skel-slide { to { translate: 100% 0; } }
+}
+
+/* Bottom-sheet content arrives in reading order (pattern 6), capped so repeats stay snappy */
+@media (prefers-reduced-motion: no-preference) {
+  .sheet[open] .sheet-body.stagger > * { animation: sheet-rise .34s var(--ease-out) backwards; }
+  .sheet-body.stagger > *:nth-child(1){animation-delay:.02s} .sheet-body.stagger > *:nth-child(2){animation-delay:.06s}
+  .sheet-body.stagger > *:nth-child(3){animation-delay:.1s} .sheet-body.stagger > *:nth-child(4){animation-delay:.14s}
+  .sheet-body.stagger > *:nth-child(n+5){animation-delay:.18s}
+  @keyframes sheet-rise { from { opacity: 0; translate: 0 10px; } }
+}
+
+/* ---------- v0.8.0: compare two cards ---------- */
+.cmp-hint { margin: -2px 0 10px; }
+#lib-compare.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+body.comparing .tag { cursor: copy; }
+.tag.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tag.sel .badge { box-shadow: 0 0 0 2px var(--accent); }
+.cmp-table { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: 6px; }
+.cmp-table th, .cmp-table td { text-align: left; padding: 8px 9px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: break-word; }
+.cmp-table thead td { font-weight: 700; color: var(--text); }
+.cmp-table th { color: var(--muted); font-weight: 500; width: 34%; }
+.cmp-table td { width: 33%; font-family: var(--mono); font-size: .82rem; }
+.cmp-table .cmp-diff td { color: var(--accent); }
+.cmp-table .cmp-diff th { color: var(--text); }

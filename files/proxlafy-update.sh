@@ -65,7 +65,10 @@ fi
 
 # ---------------------------------------------------------------- fetch from GitHub
 [ "$MODE" = check ] || [ "$(id -u)" -eq 0 ] || die "Use: sudo proxlafy update" "Usa: sudo proxlafy actualizar"
-if ! curl -fsS --max-time 10 -o /dev/null "https://github.com" 2>/dev/null; then
+# Prefer IPv4: many home routers hand out IPv6 without a working route, which makes a plain
+# curl hang and look like "no internet". -4 avoids that; if it still fails, there is really no path.
+if ! curl -4 -fsS --max-time 12 -o /dev/null "https://github.com" 2>/dev/null \
+   && ! curl -fsS --max-time 12 -o /dev/null "https://github.com" 2>/dev/null; then
   die "No internet. Connect the Pi to WiFi (home or phone hotspot) and try again." \
       "Sin internet. Conecta la Raspberry a una WiFi (casa o hotspot del celular) y reintenta." false
 fi

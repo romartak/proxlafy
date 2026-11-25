@@ -2,6 +2,27 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.8.0
+
+**Design & UX polish (web-ui-motion) · Pulido de diseño y UX**
+- **Keyboard focus rings** on every control (accessibility), consistent **press feedback** on chips and tabs,
+  **bottom-sheet content now arrives in reading order**, and **skeleton loaders** — all honouring reduced-motion.
+- Anillos de **foco de teclado** en cada control, **feedback al pulsar** uniforme, contenido de la hoja que
+  entra en orden de lectura y **loaders tipo skeleton**; todo respeta "reduce motion".
+
+**Compare two cards · Comparar dos tarjetas**
+- In the Library, **Compare** mode: pick two cards and see them side by side (type, band, UID, FC, CN,
+  feasibility, tags) with the differences highlighted.
+- En la Biblioteca, modo **Comparar**: elige dos tarjetas y las ves lado a lado con las diferencias resaltadas.
+
+**More robust updates · Actualizaciones más robustas**
+- The updater now **prefers IPv4**, so a home router that hands out broken IPv6 no longer makes it say
+  "no internet". · El actualizador **prefiere IPv4**: un router con IPv6 roto ya no lo bloquea.
+
+**Tested**
+- Automated click-through of every button in every view (no console errors). · Prueba automática de todos los
+  botones de todas las vistas (sin errores de consola).
+
 ## 0.7.0
 
 **Wipe a blank and re-clone · Limpiar un blanco y reclonar** (your request)

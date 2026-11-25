@@ -146,10 +146,12 @@
         </div>
       </div>
       <div class="lib-io">
+        <button id="lib-compare" class="btn btn-ghost sm" aria-pressed="false">⇄ <span data-i18n="compare">Comparar</span></button>
         <button id="lib-export" class="btn btn-ghost sm">⤓ <span data-i18n="export">Exportar</span></button>
         <button id="lib-import" class="btn btn-ghost sm">⤒ <span data-i18n="import">Importar</span></button>
         <input id="lib-import-file" type="file" accept="application/json,.json" hidden>
       </div>
+      <p id="cmp-hint" class="muted small cmp-hint" hidden data-i18n="compare_hint">Elige dos tarjetas para compararlas.</p>
       <div id="library" class="library" aria-live="polite">
         <p id="lib-empty" class="muted empty" data-i18n="lib_empty">Aún no hay tarjetas. Lee una y pulsa Guardar.</p>
       </div>
@@ -215,6 +217,12 @@
       <p class="muted small" data-i18n="help_intro">Qué significa cada término del panel.</p>
       <div id="help-list" class="help-list"></div>
     </div>
+  </dialog>
+
+  <!-- Compare two cards · Comparar dos tarjetas -->
+  <dialog id="cmpsheet" class="sheet">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div id="cmp-body" class="sheet-body"></div>
   </dialog>
 
   <!-- Secret lab switch · Conmutador secreto de laboratorio (long-press on the logo) -->

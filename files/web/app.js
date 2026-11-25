@@ -396,7 +396,8 @@
       '<span class="tag-title"><span class="tag-name">' + esc(c.name || c.type) + "</span>" +
       '<span class="tag-sub">' + esc(c.type + " · " + (c.label || "")) + "</span>" + tagsHtml + "</span>" +
       '<span class="tag-flags">' + flags + "</span>";
-    b.onclick = function () { openSheet(c); };
+    b.onclick = function () { if (CMP.on) CMP.pick(c, b); else openSheet(c); };
+    if (CMP.on && CMP.has(c.id)) b.classList.add("sel");
     if (!reduce) b.addEventListener("animationend", function () { b.classList.remove("fresh"); }, { once: true });
     return b;
   }
@@ -404,6 +405,49 @@
     var id = (state.sim && state.sim.id) || (state.pending && state.pending.id);
     document.querySelectorAll("#library .tag").forEach(function (n) { n.classList.toggle("simming", n.getAttribute("data-id") === id); });
   }
+
+  // ------------------------------------------------ compare two cards
+  var CMP = (function () {
+    var on = false, sel = [];
+    var btn = $id("lib-compare"), hint = $id("cmp-hint"), dlg = $id("cmpsheet");
+    function setOn(v) {
+      on = v; sel = [];
+      if (btn) btn.setAttribute("aria-pressed", v ? "true" : "false");
+      if (btn) btn.classList.toggle("on", v);
+      if (hint) hint.hidden = !v;
+      document.body.classList.toggle("comparing", v);
+      renderLibrary();
+    }
+    if (btn) btn.onclick = function () { setOn(!on); };
+    function has(id) { return sel.indexOf(id) >= 0; }
+    function pick(card, node) {
+      var i = sel.indexOf(card.id);
+      if (i >= 0) { sel.splice(i, 1); node.classList.remove("sel"); }
+      else { sel.push(card.id); node.classList.add("sel"); if (sel.length > 2) { var drop = sel.shift(); var dn = document.querySelector('#library .tag[data-id="' + drop + '"]'); if (dn) dn.classList.remove("sel"); } }
+      if (sel.length === 2) open();
+    }
+    function row(k, a, b, diff) {
+      return '<tr' + (diff ? ' class="cmp-diff"' : "") + '><th>' + esc(k) + "</th><td>" + esc(a == null ? "—" : a) + "</td><td>" + esc(b == null ? "—" : b) + "</td></tr>";
+    }
+    function open() {
+      var a = state.cards.filter(function (c) { return c.id === sel[0]; })[0];
+      var b = state.cards.filter(function (c) { return c.id === sel[1]; })[0];
+      if (!a || !b) return;
+      var da = a.data || {}, db = b.data || {}, fa = a.feasibility || {}, fb = b.feasibility || {};
+      var keys = [["Tipo · Type", a.type, b.type], ["Banda · Band", (a.band || "").toUpperCase(), (b.band || "").toUpperCase()],
+        ["UID / ID", da.uid || da.id || da.csn, db.uid || db.id || db.csn], ["FC", da.fc, db.fc], ["CN", da.cn, db.cn],
+        ["Emular · Emulate", ((fa.emulate || {}).score != null ? (fa.emulate.score + "%") : ((a.caps || {}).emulable ? "✓" : "—")), ((fb.emulate || {}).score != null ? (fb.emulate.score + "%") : ((b.caps || {}).emulable ? "✓" : "—"))],
+        ["Clonar · Clone", ((fa.clone || {}).score != null ? (fa.clone.score + "%") : ((a.caps || {}).clonable ? "✓" : "—")), ((fb.clone || {}).score != null ? (fb.clone.score + "%") : ((b.caps || {}).clonable ? "✓" : "—"))],
+        ["Etiquetas · Tags", (a.tags || []).join(", "), (b.tags || []).join(", ")]];
+      var rows = keys.map(function (r) { return row(r[0], r[1], r[2], String(r[1] == null ? "" : r[1]) !== String(r[2] == null ? "" : r[2])); }).join("");
+      $id("cmp-body").innerHTML = '<div class="sheet-head"><span class="sheet-title">' + T("compare") + "</span></div>" +
+        '<table class="cmp-table"><thead><tr><th></th><td>' + esc(a.name || a.type) + "</td><td>" + esc(b.name || b.type) + "</td></tr></thead><tbody>" + rows + "</tbody></table>" +
+        '<p class="muted small" style="margin-top:8px">' + T("compare_diff") + "</p>";
+      if (typeof dlg.showModal === "function") { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute("open", "");
+    }
+    if (dlg) dlg.addEventListener("click", function (e) { if (e.target === dlg) { try { dlg.close(); } catch (x) { dlg.removeAttribute("open"); } } });
+    return { get on() { return on; }, has: has, pick: pick };
+  })();
 
   // ------------------------------------------------ export / import / wipe
   (function () {
