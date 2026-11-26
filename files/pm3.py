@@ -66,6 +66,7 @@ class PM3:
         self._lock = threading.RLock()
         self._child = None
         self._online = False
+        self._connected = bool(self.demo)   # cached device presence (updated in the background)
         self._active = None       # card we INTEND to emulate (persisted) · tarjeta que se quiere emular
         self._sim_running = False  # whether the sim command is actually running now
         self._version = "Iceman (demo)" if self.demo else "?"
@@ -179,15 +180,27 @@ class PM3:
 
     # ================================================================ status
     def status(self):
-        with self._lock:
-            connected = self._device_ready() if not self._sim_running else True
-            return {
-                "connected": connected, "online": self._online or self.demo,
-                "firmware": self._version, "demo": self.demo,
-                "simulating": self._active if self._sim_running else None,
-                "pending_sim": self._active if (self._active and not self._sim_running) else None,
-                "error": self._last_err,
-            }
+        # Non-blocking: returns the device state CACHED by the background monitor, so the panel
+        # (login, first paint, every poll) answers instantly instead of waiting on `hw status`.
+        connected = True if (self._sim_running or self.demo) else self._connected
+        return {
+            "connected": connected, "online": self._online or self.demo,
+            "firmware": self._version, "demo": self.demo,
+            "simulating": self._active if self._sim_running else None,
+            "pending_sim": self._active if (self._active and not self._sim_running) else None,
+            "error": self._last_err,
+        }
+
+    def refresh_device(self):
+        """Background device probe (runs `hw status`). Called by the server monitor, OFF the request path."""
+        if self.demo:
+            self._connected = True
+            return
+        try:
+            with self._lock:
+                self._connected = True if self._sim_running else self._device_ready()
+        except Exception:  # noqa: BLE001
+            self._connected = False
 
     # ================================================================ read / classify
     def read(self, band="auto"):

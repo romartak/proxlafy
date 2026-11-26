@@ -513,3 +513,16 @@ body.comparing .tag { cursor: copy; }
 .sv-badge { color: var(--ok); font-size: .8rem; }
 .sr-acts { display: flex; gap: 5px; flex: 0 0 auto; }
 .sr-acts .chip-icon { min-height: 34px; padding: 5px 9px; font-size: .9rem; }
+
+/* ---------- v0.10.0: faster-feeling login with motion ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .login-card { animation: login-in .5s var(--ease-out) backwards; }
+  @keyframes login-in { from { opacity: 0; translate: 0 14px; scale: .985; } }
+  .login-card.stagger > * { animation: login-row .4s var(--ease-out) backwards; }
+  .login-card.stagger > *:nth-child(1){animation-delay:.05s} .login-card.stagger > *:nth-child(2){animation-delay:.11s}
+  .login-card.stagger > *:nth-child(3){animation-delay:.17s} .login-card.stagger > *:nth-child(4){animation-delay:.23s}
+  .login-card.stagger > *:nth-child(5){animation-delay:.29s} .login-card.stagger > *:nth-child(6){animation-delay:.35s}
+  @keyframes login-row { from { opacity: 0; translate: 0 8px; } }
+  .login-logo { animation: logo-ping 2s var(--ease-out) 2; transform-origin: center; }
+  @keyframes logo-ping { 0%,100% { scale: 1; } 45% { scale: 1.07; } }
+}

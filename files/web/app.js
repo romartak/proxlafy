@@ -79,7 +79,7 @@
 
   // ------------------------------------------------ auth
   $id("login-btn").onclick = function () {
-    api("/api/login", { method: "POST", body: { password: $id("login-pw").value } }).then(function (j) {
+    runBtn($id("login-btn"), T("entering"), api("/api/login", { method: "POST", body: { password: $id("login-pw").value } })).then(function (j) {
       if (j.ok) { $id("login-err").hidden = true; $id("login-pw").value = ""; boot(); }
       else { $id("login-err").textContent = j.error || T("err_generic"); $id("login-err").hidden = false; }
     });
@@ -298,6 +298,7 @@
     if (c.decode && !card.decoded) h += '<button class="btn" data-a="decode">' + (c.secure ? "🔑 " + T("decode_keys") : T("decode")) + "</button>";
     if (c.emulable) h += '<button class="btn ' + (ctx === "sheet" ? "btn-primary" : "") + '" data-a="emit">▶ ' + T("emit") + "</button>";
     if (c.clonable) h += '<button class="btn" data-a="write">⎘ ' + T("write_to") + " " + esc((c.target || "").split("/")[0].trim()) + "</button>";
+    if (ctx !== "sheet") h += '<button class="btn btn-ghost" data-a="clear">🧹 ' + T("clear_card") + "</button>";
     h += "</div>";
     if (ctx === "sheet") {
       h += '<div class="sheet-field"><label>' + T("name") + '</label><input id="sf-name" type="text" maxlength="80" value="' + esc(card.name || "") + '"></div>';
@@ -342,6 +343,12 @@
         var vr = j.result && j.result.verified;
         var msg = !j.ok ? (j.error || T("err_generic")) : (vr === true ? T("verified_ok") : (vr === false ? T("verified_fail") : "OK ✓"));
         toast(msg, (j.ok && vr !== false) ? "ok" : "err");
+      });
+    } else if (a === "clear") {
+      if (!confirm(T("clear_card_confirm"))) return;
+      var kind = card.band === "hf" ? "mifare" : (card.key === "em4x05" ? "em4305" : "t5577");
+      runBtn(btn, T("wiping"), api("/api/wipe", { method: "POST", body: { kind: kind } })).then(function (r) {
+        toast(r.ok ? T("wipe_ok") : ((r.result && (r.result.output || "").slice(-120)) || r.error || T("err_generic")), r.ok ? "ok" : "err");
       });
     } else if (a === "savemeta") {
       var tagsVal = ($id("sf-tags") ? $id("sf-tags").value : "").split(",").map(function (t) { return t.trim(); }).filter(Boolean);

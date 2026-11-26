@@ -191,6 +191,7 @@ class App:
         was_running = False
         while True:
             try:
+                self.pm.refresh_device()   # background `hw status`, keeps /api/status instant
                 self.pm.resume_if_needed()
                 st = self.pm.status()
                 running = st.get("simulating") is not None

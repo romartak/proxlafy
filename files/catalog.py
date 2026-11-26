@@ -49,6 +49,7 @@ CATALOG = [
     {
         "key": "hid_prox", "name": "HID Prox", "band": "lf",
         "sig": r"HID\s*Prox|HID\s+[A-Za-z0-9]+\s+\d+-bit|\bHID\b.*FC:",
+        "strong": [r"Valid\s+HID\s+Prox", r"HID\s+Prox\s+TAG\s+ID", r"\[H1\d{4}\]", r"HID\s+H1\d{4}\s+\d+-bit"],
         "fields": {"format": r"HID\s+([A-Za-z0-9]+)\s+\d+-bit", "fc": r"FC:\s*(\d+)",
                    "cn": r"CN:\s*(\d+)", "raw": r"raw:\s*([0-9A-Fa-f]+)"},
         "sim": _hid_sim, "clone": _hid_clone, "target": "T5577", "secure": False, "decode": None,
@@ -58,6 +59,7 @@ CATALOG = [
     {
         "key": "em410x", "name": "EM410x", "band": "lf",
         "sig": r"EM\s*410x|EM4100",
+        "strong": [r"Valid\s+EM410x", r"EM\s*410x\s+ID", r"EM4100.*ID"],
         "fields": {"id": r"EM\s*410x.*?ID[:\s]+([0-9A-Fa-f]+)|\bID[:\s]+([0-9A-Fa-f]{10})\b"},
         "sim": "lf em 410x sim --id {id}", "clone": "lf em 410x clone --id {id}",
         "target": "T5577 / EM4305", "secure": False, "decode": None,
@@ -67,6 +69,7 @@ CATALOG = [
     {
         "key": "indala", "name": "Indala", "band": "lf",
         "sig": r"Indala",
+        "strong": [r"Valid\s+Indala", r"Indala\s*\(len", r"Indala.*Raw[:\s]+[0-9A-Fa-f]"],
         "fields": {"raw": r"Raw[:\s]+([0-9A-Fa-f]+)", "fc": r"FC:\s*(\d+)", "cn": r"(?:Card|CN):\s*(\d+)"},
         "sim": "lf indala sim -r {raw}", "clone": "lf indala clone -r {raw}",
         "target": "T5577", "secure": False, "decode": None,
@@ -76,6 +79,7 @@ CATALOG = [
     {
         "key": "awid", "name": "AWID", "band": "lf",
         "sig": r"\bAWID\b",
+        "strong": [r"Valid\s+AWID", r"AWID\s+\d+\s*[-–]\s*", r"AWID.*(FC|Card)[:\s]+\d"],
         "fields": {"fmt": r"AWID\s+(\d+)", "fc": r"FC:\s*(\d+)", "cn": r"(?:Card|CN):\s*(\d+)"},
         "sim": "lf awid sim --fmt {fmt} --fc {fc} --cn {cn}",
         "clone": "lf awid clone --fmt {fmt} --fc {fc} --cn {cn}",
@@ -207,6 +211,7 @@ CATALOG = [
     {
         "key": "em4x05", "name": "EM4x05 / EM4x50", "band": "lf",
         "sig": r"EM4x05|EM4205|EM4305|EM4x50|EM4450",
+        "blank": True,
         "fields": {"raw": r"(?:word 0|block 0|UID)[:\s]+([0-9A-Fa-f]+)"},
         "sim": None, "clone": None, "target": "same chip (writable)", "secure": False, "decode": "em4x05_dump",
         "notes_en": "Writable EM chip. Read/write per-word; often the blank for EM410x clones.",
@@ -215,6 +220,7 @@ CATALOG = [
     {
         "key": "t55xx", "name": "T55x7 (blank/raw)", "band": "lf",
         "sig": r"T55[x0-9]{2}|Chipset.*T55",
+        "blank": True,
         "fields": {"raw": r"(?:block 0|raw)[:\s]+([0-9A-Fa-f]+)"},
         "sim": None, "clone": None, "target": "same chip", "secure": False, "decode": "t55xx_dump",
         "notes_en": "The universal 125 kHz rewritable chip — the blank most LF clones are written to.",
@@ -224,7 +230,8 @@ CATALOG = [
     # ================================ HF · 13.56 MHz ================================
     {
         "key": "mifare_classic", "name": "MIFARE Classic", "band": "hf",
-        "sig": r"MIFARE\s+Classic",
+        "sig": r"MIFARE\s+Classic\s*(?:Ev1\s+)?(?:1K|2K|4K|Mini)",
+        "strong": [r"MIFARE\s+Classic\s*(?:Ev1\s+)?(?:1K|2K|4K|Mini)", r"Prng\s+detection", r"\bMFC\b.*(1K|4K)"],
         "fields": {"uid": r"UID[:\s]+([0-9A-Fa-f ]+)", "size": r"(1K|4K|Mini)"},
         "sim": "hf mf sim --1k -u {uid}", "clone": "hf mf cload",
         "target": "magic gen1a / gen2", "secure": True, "decode": "mf_autopwn",
@@ -234,6 +241,7 @@ CATALOG = [
     {
         "key": "mifare_ultralight", "name": "MIFARE Ultralight / NTAG", "band": "hf",
         "sig": r"MIFARE\s+Ultralight|NTAG\s*\d|Ultralight",
+        "strong": [r"MIFARE\s+Ultralight\s*(?:C|EV1|AES)?", r"\bNTAG\s*\d{2,}", r"Ultralight\s*(?:C|EV1)"],
         "fields": {"uid": r"UID[:\s]+([0-9A-Fa-f ]+)", "type": r"(NTAG\s*\d+|Ultralight(?:\s*C| EV1)?)"},
         "sim": "hf mfu sim -t 7 -u {uid}", "clone": "hf mfu restore",
         "target": "magic Ultralight / NTAG", "secure": False, "decode": "mfu_dump",
@@ -243,6 +251,7 @@ CATALOG = [
     {
         "key": "mifare_desfire", "name": "MIFARE DESFire", "band": "hf",
         "sig": r"DESFire",
+        "strong": [r"DESFire\s*(?:EV[123]|light)", r"Mifare\s+DESFire"],
         "fields": {"uid": r"UID[:\s]+([0-9A-Fa-f ]+)", "ver": r"(EV1|EV2|EV3)"},
         "sim": None, "clone": None, "target": None, "secure": True, "decode": "mfdes_enum",
         "notes_en": "Strong crypto (AES/3DES). You can enumerate apps/UID but NOT clone it without the keys.",
@@ -258,7 +267,8 @@ CATALOG = [
     },
     {
         "key": "iclass", "name": "HID iCLASS", "band": "hf",
-        "sig": r"iCLASS|PicoPass",
+        "sig": r"iCLASS.*(CSN|Config|legacy|Elite|SE|Seos)|Pico[Pp]ass|CSN[:\s]+[0-9A-Fa-f]",
+        "strong": [r"iCLASS\s*(?:legacy|Elite|SE|Seos|2)", r"Pico[Pp]ass", r"CSN[:\s]+[0-9A-Fa-f]{6}"],
         "fields": {"csn": r"CSN[:\s]+([0-9A-Fa-f ]+)", "config": r"Config[:\s]+([0-9A-Fa-f ]+)"},
         "sim": "hf iclass sim -t 3", "clone": "hf iclass restore",
         "target": "writable iCLASS (2ks)", "secure": True, "decode": "iclass_dump",
@@ -314,25 +324,52 @@ def _clean_hex(v):
     return re.sub(r"\s+", "", v).upper() if v else v
 
 
+def _extract(entry, out):
+    fields = {}
+    for name, pat in entry.get("fields", {}).items():
+        m = re.search(pat, out, re.I)
+        if m:
+            val = next((g for g in m.groups() if g), None)
+            if val is not None:
+                val = val.strip()
+                if name in ("uid", "csn", "idm", "raw"):
+                    val = _clean_hex(val)
+                fields[name] = val
+    return fields
+
+
+def _score(entry, out):
+    """Confidence that this card family is the real one in the search output.
+
+    We score POSITIVE detection markers (Iceman's "Valid X found", type+size lines, IDs) rather than
+    the mere mention of a name — a `search` prints the names of everything it probes, and matching those
+    was what mixed up HID/iCLASS/MIFARE and AWID/T55x7. `strong` markers (unambiguous) weigh most; the
+    base `sig` weighs little; rewritable blanks (T55xx, EM4x05) only win when nothing with data matched.
+    """
+    s = 0
+    for pat in entry.get("strong", []):
+        if re.search(pat, out, re.I):
+            s += 8
+            break
+    if re.search(entry["sig"], out, re.I):
+        s += 2
+    if entry.get("blank"):
+        s = 1 if s else 0            # a blank is a last-resort guess, never beats a data-bearing tag
+    return s
+
+
 def classify(output, band):
-    """Return (entry, fields) for the first catalog type that matches the search output, else (None, {})."""
+    """Best-match (entry, fields) for the search output on this band, or (None, {}) if nothing is sure."""
     out = output or ""
+    best, best_s = None, 0
     for entry in CATALOG:
         if entry["band"] != band:
             continue
-        if not re.search(entry["sig"], out, re.I):
-            continue
-        fields = {}
-        for name, pat in entry.get("fields", {}).items():
-            m = re.search(pat, out, re.I)
-            if m:
-                val = next((g for g in m.groups() if g), None)
-                if val is not None:
-                    val = val.strip()
-                    if name in ("uid", "csn", "idm", "raw"):
-                        val = _clean_hex(val)
-                    fields[name] = val
-        return entry, fields
+        s = _score(entry, out)
+        if s > best_s:
+            best, best_s = entry, s
+    if best and (best_s >= 2 or (best.get("blank") and best_s >= 1)):
+        return best, _extract(best, out)
     return None, {}
 
 

@@ -140,6 +140,18 @@ check("timed emit auto-stopped", pm.status()["simulating"] is None)
 wres = pm.write_card(card)
 check("write auto-verified", wres.get("verified") is True)
 
+# classification accuracy: positive markers, not mere mentions (HID/iCLASS/MIFARE, AWID/T55x7)
+import catalog as _cat
+_cases = [
+    ("lf", "[+] Valid HID Prox ID found!\n[+] HID Prox TAG ID: .. FC: 12 CN: 3187", "hid_prox"),
+    ("lf", "[+] AWID - len: 26 FC: 200 Card: 31337\n[=] Chipset detection: T55x7", "awid"),
+    ("lf", "[=] Chipset detection: T55x7\n[-] No known 125 kHz tags found", "t55xx"),
+    ("hf", "[-] MIFARE Classic... failed\n[+] iCLASS / Picopass CSN: 0102030405060708", "iclass"),
+    ("hf", "[+] Valid ISO 14443-A tag found\n[+] MIFARE Classic 1K\n[+] Prng detection: weak", "mifare_classic"),
+]
+_ok = all((_cat.classify(o, b)[0] or {}).get("key") == w for b, o, w in _cases)
+check("classify: no HID/iCLASS/MIFARE or AWID/T55x7 mix-ups", _ok)
+
 print()
 if fails:
     print("%d test(s) failed" % fails); sys.exit(1)

@@ -2,6 +2,28 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.10.0
+
+**Accurate identification · Identificación correcta** (your bug report)
+- The classifier was mixing **HID / iCLASS / MIFARE Classic** and **AWID / T55x7** because `search` prints the
+  name of everything it probes. It now scores **positive detection markers** (Iceman's "Valid X found", type+size
+  lines, CSN, IDs) and treats rewritable **blanks (T55xx, EM4x05) as a last resort**, so a real card always wins.
+  Covered by a new regression test.
+- El identificador confundía HID/iCLASS/MIFARE y AWID/T55x7. Ahora puntúa **señales positivas** y los blancos solo
+  ganan si no hay tarjeta con datos. Con prueba de regresión.
+
+**Much faster to open · Mucho más rápido de abrir**
+- `/api/status` no longer waits on the Proxmark: device presence is probed in the **background** and cached, so the
+  **login and every screen answer instantly**. The login now animates in. · El panel ya no espera al lector en cada
+  consulta: se comprueba en segundo plano. El **login abre al instante** y con animación.
+
+**Clear Card · Limpiar tarjeta**
+- A **Clear this card** button right in the read/scan detail wipes the card on the antenna back to blank (T5577,
+  EM4305 or magic MIFARE). · Botón **Limpiar esta tarjeta** en el detalle de lectura/escaneo.
+
+**More honest buttons & motion**
+- The login button shows a spinner while it checks; detected-card and session entrances, etc. (from 0.9.0) kept.
+
 ## 0.9.0
 
 **Honest button states · Botones con estado real** (your request)
