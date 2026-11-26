@@ -48,6 +48,7 @@
       <input id="login-pw" type="password" autocomplete="current-password" data-i18n-ph="password" placeholder="Clave">
       <button id="login-btn" class="btn btn-primary" data-i18n="enter">Entrar</button>
       <p id="login-err" class="err" hidden></p>
+      <button type="button" id="forgot-pw" class="linklike" data-i18n="forgot_pw">¿Olvidaste la clave?</button>
     </div>
   </section>
 
@@ -195,9 +196,21 @@
           <dt data-i18n="sys_ver">Versión</dt><dd id="sys-ver">–</dd>
         </dl>
       </div>
-      <details class="console grow adv">
+      <details class="console grow adv" id="console-box">
         <summary data-i18n="console">Consola en vivo</summary>
         <div id="console-log" class="console-log"></div>
+        <form id="console-form" class="console-input" autocomplete="off">
+          <span class="ci-prompt" aria-hidden="true">pm3 »</span>
+          <input id="console-cmd" type="text" data-i18n-ph="console_ph" placeholder="hw status, lf search, hf search…" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+          <button class="btn btn-primary sm" id="console-run" type="submit" data-i18n="run_cmd">Enviar</button>
+        </form>
+        <div class="console-quick">
+          <button type="button" class="chip" data-cmd="hw status">hw status</button>
+          <button type="button" class="chip" data-cmd="hw tune">hw tune</button>
+          <button type="button" class="chip" data-cmd="lf search">lf search</button>
+          <button type="button" class="chip" data-cmd="hf search">hf search</button>
+          <button type="button" class="chip" data-cmd="hw version">hw version</button>
+        </div>
       </details>
       <div class="card">
         <h3 data-i18n="sys_updates">Actualizaciones</h3>

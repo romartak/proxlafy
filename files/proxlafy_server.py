@@ -575,6 +575,19 @@ class Handler(BaseHTTPRequestHandler):
             self.app.log.add("Emulación detenida · emulation stopped")
             return self._send_json({"ok": True})
 
+        if path == "/api/console":
+            if not self._require("admin"):
+                return
+            cmd = str(body.get("cmd", "")).strip()
+            if not cmd:
+                return self._send_json({"ok": False, "error": "vacío · empty"}, 400)
+            self.app.log.add("» " + cmd)
+            try:
+                out = self.app.pm.run(cmd, timeout=cint(body.get("timeout"), 40))
+            except Exception as e:  # noqa: BLE001
+                return self._send_json({"ok": False, "error": str(e)})
+            return self._send_json({"ok": True, "output": (out or "")[-6000:]})
+
         if path == "/api/update":
             if not self._require("admin"):
                 return

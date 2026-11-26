@@ -2,6 +2,19 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.14.0
+
+**Live console · Consola en vivo** (your request)
+- A real console in **System → Live console**: type any Proxmark command (`hw status`, `lf search`, `hf search`…)
+  and see the output, with one-tap quick commands. Full manual control. (`POST /api/console`, admin only.)
+- Consola de verdad: escribe cualquier comando del Proxmark y ves la salida, con comandos rápidos. Control manual total.
+
+**Design & optimization · Diseño y optimización**
+- Detail-action buttons are **compact and never break mid-word** ("Clear this card" → **Clear/Limpiar**).
+- A subtle **animated background** (one cheap layer, transform-only, reduced-motion safe).
+- **Forgot the password?** on the login screen (tells you to run `sudo proxlafy password`).
+- **RAM fix:** the console/log no longer grows without bound — it's capped, so memory stays flat over long sessions.
+
 ## 0.13.0
 
 **A clear STOP for continuous scan · Parar el escaneo continuo** (your report)

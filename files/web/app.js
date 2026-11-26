@@ -85,6 +85,7 @@
     });
   };
   $id("login-pw").addEventListener("keydown", function (e) { if (e.key === "Enter") $id("login-btn").click(); });
+  if ($id("forgot-pw")) $id("forgot-pw").onclick = function () { var e = $id("login-err"); e.textContent = T("forgot_pw_help"); e.hidden = false; e.classList.add("hint"); };
   $id("logout").onclick = function () { api("/api/logout", { method: "POST" }).then(showLogin); };
   function showLogin() { $id("login").hidden = false; $id("main").hidden = true; $id("logout").hidden = true; }
   function showMain() { $id("login").hidden = true; $id("main").hidden = false; }
@@ -666,9 +667,34 @@
         line.innerHTML = '<span class="ts">' + esc(new Date(it.t * 1000).toLocaleTimeString()) + "</span>" + esc(it.text);
         box.appendChild(line);
       });
+      while (box.childElementCount > 240) box.removeChild(box.firstChild);   // cap DOM: no unbounded RAM growth
       if (j.items && j.items.length) box.scrollTop = box.scrollHeight;
     }).catch(function () {});
   }
+
+  // ------------------------------------------------ live console (type pm3 commands)
+  (function () {
+    var form = $id("console-form"); if (!form) return;
+    var input = $id("console-cmd"), box = $id("console-log");
+    function push(text, cls) {
+      var line = document.createElement("div"); line.className = "console-line " + (cls || ""); line.textContent = text;
+      box.appendChild(line);
+      while (box.childElementCount > 240) box.removeChild(box.firstChild);
+      box.scrollTop = box.scrollHeight;
+    }
+    function runConsole(cmd) {
+      cmd = (cmd || "").trim(); if (!cmd) return;
+      push("» " + cmd, "cmd");
+      runBtn($id("console-run"), "…", api("/api/console", { method: "POST", body: { cmd: cmd } })).then(function (j) {
+        if (j.ok) { (j.output || "").replace(/\s+$/, "").split("\n").forEach(function (l) { push(l); }); }
+        else push("✖ " + (j.error || T("err_generic")), "err");
+      });
+    }
+    form.onsubmit = function (e) { e.preventDefault(); runConsole(input.value); input.value = ""; };
+    document.querySelectorAll(".console-quick [data-cmd]").forEach(function (b) {
+      b.onclick = function () { runConsole(b.getAttribute("data-cmd")); };
+    });
+  })();
 
   // ------------------------------------------------ standalone
   function loadStandalone() {
