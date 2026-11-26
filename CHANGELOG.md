@@ -2,6 +2,15 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.13.0
+
+**A clear STOP for continuous scan · Parar el escaneo continuo** (your report)
+- Turning on **Continuous scan** now turns the big button into a red **⏹ Stop scanning** (always clickable), with a
+  pulsing **"Searching for cards…"** indicator, so it's obvious it's running and how to stop it. Reads no longer
+  overlap, and scanning pauses when you leave the tab and resumes on return.
+- Al activar el **escaneo continuo**, el botón grande se vuelve **⏹ Detener escaneo** (rojo, siempre pulsable) con
+  un indicador "Buscando tarjetas…". Las lecturas ya no se solapan y se pausa al salir de la pestaña.
+
 ## 0.12.0
 
 **Apple / Emil-Kowalski design pass · Pulido estilo Apple / Emil Kowalski**

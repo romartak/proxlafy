@@ -274,20 +274,41 @@
       b.classList.add("active"); state.scanBand = b.getAttribute("data-band");
     };
   });
-  $id("scan-btn").onclick = function () {
-    if (state.sim) { toast(T("emulating")); return; }
-    setLoadingScan(true);
-    api("/api/read", { method: "POST", body: { band: state.scanBand || "auto" } }).then(function (j) {
-      setLoadingScan(false);
-      if (!j.ok) { toast(j.error || T("err_generic"), "err"); return; }
+  var scanCont = false, scanTimer = null;   // continuous scan running? + its interval
+  function doScan() {
+    if (state.sim) { toast(T("emulating")); return Promise.resolve(); }
+    if (state._scanBusy) return Promise.resolve();
+    state._scanBusy = true; setScanBusy(true);
+    return api("/api/read", { method: "POST", body: { band: state.scanBand || "auto" } }).then(function (j) {
+      state._scanBusy = false; setScanBusy(false);
+      if (!j.ok) { if (!scanCont) toast(j.error || T("err_generic"), "err"); return; }
       renderScan(j.card); SESSION.add(j.card);
-    }).catch(function () { setLoadingScan(false); });
-  };
-  function setLoadingScan(on) {
-    var btn = $id("scan-btn"); btn.disabled = on;
-    var lab = $(".btn-label", btn), dots = $(".loader-dots", btn);
-    if (lab) lab.textContent = on ? T("reading") : T("scan_btn");
-    if (dots) dots.hidden = !on;
+    }).catch(function () { state._scanBusy = false; setScanBusy(false); });
+  }
+  // One button: a single Identify, or — while continuous is on — a clear STOP (always clickable).
+  $id("scan-btn").onclick = function () { if (scanCont) stopContinuous(); else doScan(); };
+  function setScanBusy(on) {
+    var btn = $id("scan-btn"), lab = $(".btn-label", btn), dots = $(".loader-dots", btn);
+    if (!scanCont) { btn.disabled = on; if (lab) lab.textContent = on ? T("reading") : T("scan_btn"); }
+    if (dots) dots.hidden = scanCont ? true : !on;
+    var ind = $id("scan-indicator"); if (ind) ind.hidden = !(scanCont || on);
+  }
+  function startContinuous() {
+    scanCont = true; var cb = $id("scan-continuous"); if (cb) cb.checked = true;
+    var btn = $id("scan-btn"); btn.disabled = false; btn.classList.add("scanning");
+    var lab = $(".btn-label", btn); if (lab) lab.textContent = T("scan_stop");
+    var dots = $(".loader-dots", btn); if (dots) dots.hidden = true;
+    var ind = $id("scan-indicator"); if (ind) ind.hidden = false;
+    clearInterval(scanTimer);
+    scanTimer = setInterval(function () { if (!document.hidden && state.view === "scan" && !state.sim && !state._scanBusy) doScan(); }, 1700);
+    doScan();
+  }
+  function stopContinuous() {
+    scanCont = false; var cb = $id("scan-continuous"); if (cb) cb.checked = false;
+    clearInterval(scanTimer); scanTimer = null;
+    var btn = $id("scan-btn"); btn.classList.remove("scanning"); btn.disabled = false;
+    var lab = $(".btn-label", btn); if (lab) lab.textContent = T("scan_btn");
+    var ind = $id("scan-indicator"); if (ind) ind.hidden = true;
   }
   function renderScan(card) {
     var box = $id("scan-result");
@@ -837,12 +858,8 @@
     }).catch(function () {});
   }
 
-  // ------------------------------------------------ continuous scan
-  var scanTimer = null;
-  $id("scan-continuous").onchange = function () {
-    if (this.checked) { scanTimer = setInterval(function () { if (!document.hidden && state.view === "scan" && !state.sim && !$id("scan-btn").disabled) $id("scan-btn").click(); }, 1700); }
-    else { clearInterval(scanTimer); scanTimer = null; }
-  };
+  // ------------------------------------------------ continuous scan (toggle → start/stop)
+  if ($id("scan-continuous")) $id("scan-continuous").onchange = function () { if (this.checked) startContinuous(); else stopContinuous(); };
 
   function renderAll() { renderRead(state.lastRead); if (state.lastScan) renderScan(state.lastScan); renderLibrary(); if (state.standalone) renderStandalone(); if (state.view === "emit") renderEmit(); }
 
