@@ -2,6 +2,16 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.15.0
+
+**Fix: action buttons overflowed and collided · Botones que se desbordaban y se encimaban** (your report)
+- The read/scan/sheet action buttons were crammed into one row and the text spilled out of the boxes. They now sit
+  in a **clean 2-column grid** (the primary **Save** spans the full width), each button ≥44 px, with its emoji, and
+  labels that never overflow. Audited against a UI/UX checklist skill.
+- Los botones de acción se amontonaban y el texto se salía. Ahora van en una **rejilla de 2 columnas** ordenada,
+  cada uno ≥44 px con su emoji y sin que el texto se salga. Auditado con una skill de checklist UI/UX.
+- Toasts last a touch longer (3.6 s) and announce via `aria-live`; the standalone mode header wraps instead of clipping.
+
 ## 0.14.0
 
 **Live console · Consola en vivo** (your request)

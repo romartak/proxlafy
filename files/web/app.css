@@ -625,7 +625,16 @@ body::before {
   text-decoration: underline; cursor: pointer; margin: 6px auto 0; padding: 4px; }
 .err.hint { color: var(--muted); }
 
-/* Compact, tidy action buttons — labels never break mid-word */
+/* Tidy action buttons: a clean 2-column grid so labels never collide or spill out of the box */
 .btn-row { gap: 8px; }
-.btn-row .btn { white-space: nowrap; }
-.read-result .btn-row .btn, .sheet-body > .btn-row .btn { font-size: .85rem; padding: 10px 12px; min-height: 42px; min-width: 0; }
+.read-result .btn-row, .sheet-body > .btn-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.read-result .btn-row .btn, .sheet-body > .btn-row .btn {
+  width: 100%; min-width: 0; margin: 0; font-size: .85rem; padding: 11px 10px; min-height: 44px;  /* ≥44px tap target */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* the main save/primary action spans the full width when it's the first of an odd set */
+.read-result .btn-row .btn[data-a="save"] { grid-column: 1 / -1; }
+.std-mode-head { flex-wrap: wrap; }
+.std-mode-head > * { min-width: 0; }

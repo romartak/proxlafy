@@ -58,7 +58,7 @@
   var toastT;
   function toast(msg, kind) {
     var t = $id("toast"); t.textContent = msg; t.className = "toast " + (kind || ""); t.hidden = false;
-    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600);
+    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3600);
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]; }); }
 
