@@ -62,6 +62,21 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]; }); }
 
+  // Run an async action FROM a button with honest feedback: spinner while it runs,
+  // then a ✓ (green) or ✗ (red) pop that settles back to the original label. Nothing stays "stuck".
+  function runBtn(btn, busyLabel, promise) {
+    if (!btn) return promise;
+    var orig = btn.innerHTML, w = btn.getBoundingClientRect().width;
+    btn.disabled = true; btn.classList.add("busy"); btn.style.minWidth = Math.round(w) + "px";
+    btn.innerHTML = '<span class="btn-spin" aria-hidden="true"></span><span>' + esc(busyLabel) + "</span>";
+    function settle(cls, label) {
+      btn.classList.remove("busy"); btn.classList.add(cls); btn.innerHTML = label;
+      setTimeout(function () { btn.classList.remove("done", "failed"); btn.disabled = false; btn.style.minWidth = ""; btn.innerHTML = orig; }, 1500);
+    }
+    return promise.then(function (r) { settle((!r || r.ok !== false) ? "done" : "failed", (!r || r.ok !== false) ? "✓" : "✗"); return r; },
+                        function (e) { settle("failed", "✗"); throw e; });
+  }
+
   // ------------------------------------------------ auth
   $id("login-btn").onclick = function () {
     api("/api/login", { method: "POST", body: { password: $id("login-pw").value } }).then(function (j) {
@@ -86,7 +101,7 @@
     ["read", "scan", "emit", "library", "system"].forEach(function (v) { $id("view-" + v).hidden = v !== name; });
     if (name === "library") refreshCards();
     if (name === "emit") { refreshCards().then(renderEmit); loadWipe(); }
-    if (name === "scan") refreshHistory();
+    if (name === "scan") SESSION.render();
     if (name === "system") { loadStandalone(); loadDevice(); }
   }
 
@@ -259,7 +274,7 @@
     api("/api/read", { method: "POST", body: { band: state.scanBand || "auto" } }).then(function (j) {
       setLoadingScan(false);
       if (!j.ok) { toast(j.error || T("err_generic"), "err"); return; }
-      renderScan(j.card); refreshHistory();
+      renderScan(j.card); SESSION.add(j.card);
     }).catch(function () { setLoadingScan(false); });
   };
   function setLoadingScan(on) {
@@ -313,23 +328,20 @@
         else toast(j.error || T("err_generic"), "err");
       });
     } else if (a === "decode") {
-      if (btn) { btn.disabled = true; btn.textContent = T("decoding"); }
       var url = card.id ? "/api/cards/" + card.id + "/decode" : "/api/decode";
       var opt = card.id ? { method: "POST" } : { method: "POST", body: { card: card } };
-      api(url, opt).then(function (j) {
-        if (j.ok) { toast(T("decode") + " ✓", "ok"); if (j.card) { card = j.card; if (ctx === "sheet") openSheet(card); else if (ctx === "scan") renderScan(card); else renderRead(card); } refreshCards(); }
-        else { toast((j.result && j.result.error) || j.error || T("err_generic"), "err"); if (btn) { btn.disabled = false; } }
+      runBtn(btn, T("decoding"), api(url, opt)).then(function (j) {
+        if (j.ok) { toast(T("decode") + " ✓", "ok"); if (j.card) { card = j.card; if (typeof SESSION !== "undefined") SESSION.update(card); if (ctx === "sheet") openSheet(card); else if (ctx === "scan") renderScan(card); else renderRead(card); } refreshCards(); }
+        else { toast((j.result && j.result.error) || j.error || T("err_generic"), "err"); }
       });
     } else if (a === "write") {
       if (!confirm(T("write_confirm"))) return;
-      if (btn) { btn.disabled = true; btn.textContent = T("cloning"); }
       var wurl = card.id ? "/api/cards/" + card.id + "/write" : null;
-      if (!wurl) { toast(T("save_card") + " →", "err"); if (btn) btn.disabled = false; return; }
-      api(wurl, { method: "POST" }).then(function (j) {
+      if (!wurl) { toast(T("save_first"), "err"); return; }
+      runBtn(btn, T("cloning"), api(wurl, { method: "POST" })).then(function (j) {
         var vr = j.result && j.result.verified;
         var msg = !j.ok ? (j.error || T("err_generic")) : (vr === true ? T("verified_ok") : (vr === false ? T("verified_fail") : "OK ✓"));
         toast(msg, (j.ok && vr !== false) ? "ok" : "err");
-        if (btn) { btn.disabled = false; btn.textContent = "⎘ " + T("write_to"); }
       });
     } else if (a === "savemeta") {
       var tagsVal = ($id("sf-tags") ? $id("sf-tags").value : "").split(",").map(function (t) { return t.trim(); }).filter(Boolean);
@@ -489,11 +501,9 @@
       box.querySelectorAll("[data-wipe]").forEach(function (b) {
         b.onclick = function () {
           if (!confirm(T("wipe_confirm"))) return;
-          b.disabled = true; var orig = b.innerHTML; b.textContent = T("wiping");
-          api("/api/wipe", { method: "POST", body: { kind: b.getAttribute("data-wipe") } }).then(function (r) {
+          runBtn(b, T("wiping"), api("/api/wipe", { method: "POST", body: { kind: b.getAttribute("data-wipe") } })).then(function (r) {
             toast(r.ok ? T("wipe_ok") : ((r.result && (r.result.output || "").slice(-120)) || r.error || T("err_generic")), r.ok ? "ok" : "err");
-            b.disabled = false; b.innerHTML = orig;
-          }).catch(function () { b.disabled = false; b.innerHTML = orig; });
+          });
         };
       });
     });
@@ -721,16 +731,87 @@
   }
 
   // ------------------------------------------------ history
-  function refreshHistory() {
-    return api("/api/history").then(function (j) {
-      if (!j.ok) return;
-      var h = j.history || [], box = $id("history-list");
-      $id("history-box").hidden = !h.length;
-      box.innerHTML = h.map(function (it) {
-        return '<div class="history-row"><span class="badge ' + it.band + '">' + it.band.toUpperCase() + '</span><span>' + esc(it.type + " · " + (it.label || "")) + '</span><span class="h-time">' + esc(new Date(it.t * 1000).toLocaleTimeString()) + "</span></div>";
+  // ------------------------------------------------ scan session (end-of-day review)
+  var SESSION = (function () {
+    var KEY = "proxlafy_session", list = [];
+    try { list = JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch (e) { list = []; }
+    function persist() { try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 300))); } catch (e) {} }
+    function sig(c) { return (c.key || c.type || "") + "|" + (c.label || "") + "|" + ((c.data || {}).uid || (c.data || {}).id || ""); }
+    function add(card) {
+      if (!card) return;
+      var s = sig(card), i = list.findIndex(function (x) { return x._sig === s; });
+      if (i >= 0) { var ex = list.splice(i, 1)[0]; card._sid = ex._sid; card.saved = ex.saved; }   // move dup to top
+      card = JSON.parse(JSON.stringify(card));
+      card._sig = s; card._sid = card._sid || ("s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+      card._t = card._t || Date.now();
+      list.unshift(card); persist(); render(true);
+    }
+    function update(card) { var i = list.findIndex(function (x) { return x._sid === card._sid || x._sig === sig(card); }); if (i >= 0) { card._sig = list[i]._sig; card._sid = list[i]._sid; card._t = list[i]._t; card.saved = list[i].saved; list[i] = JSON.parse(JSON.stringify(card)); persist(); render(); } }
+    function remove(sid) { list = list.filter(function (x) { return x._sid !== sid; }); persist(); render(); }
+    function clear() { list = []; persist(); render(); }
+    function get(sid) { return list.filter(function (x) { return x._sid === sid; })[0]; }
+    function render(bump) {
+      var box = $id("session-list"), wrap = $id("scan-session"), cnt = $id("session-count");
+      if (!box) return;
+      wrap.hidden = !list.length;
+      if (cnt) { cnt.textContent = list.length; if (bump && !reduce) { cnt.classList.remove("bump"); void cnt.offsetWidth; cnt.classList.add("bump"); } }
+      box.innerHTML = list.map(function (c) {
+        var saved = c.saved ? '<span class="sv-badge" title="guardada">✓</span>' : "";
+        return '<div class="session-row' + (reduce ? "" : " fresh") + '" data-sid="' + c._sid + '">' +
+          '<span class="badge ' + c.band + '">' + c.band.toUpperCase() + "</span>" +
+          '<button class="sr-main" data-s="view"><span class="sr-name">' + esc(c.name || c.type) + saved + "</span>" +
+          '<span class="sr-sub">' + esc((c.label || "") + " · " + new Date(c._t).toLocaleTimeString()) + "</span></button>" +
+          '<span class="sr-acts">' +
+            (c.saved ? "" : '<button class="chip chip-icon" data-s="save" title="' + esc(T("save")) + '">💾</button>') +
+            ((c.caps || {}).decode && !c.decoded ? '<button class="chip chip-icon" data-s="decode" title="' + esc(T("decode")) + '">🔑</button>' : "") +
+            '<button class="chip chip-icon" data-s="del" title="' + esc(T("del")) + '">🗑</button>' +
+          "</span></div>";
       }).join("");
-    }).catch(function () {});
-  }
+      box.querySelectorAll(".session-row").forEach(function (row) {
+        var sid = row.getAttribute("data-sid");
+        row.querySelectorAll("[data-s]").forEach(function (b) {
+          b.onclick = function (e) { e.stopPropagation(); act(b.getAttribute("data-s"), sid, b); };
+        });
+      });
+    }
+    function act(a, sid, btn) {
+      var c = get(sid); if (!c) return;
+      if (a === "view") { renderScan(c); $id("scan-result").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
+      else if (a === "del") { remove(sid); }
+      else if (a === "save") {
+        runBtn(btn, "…", api("/api/cards", { method: "POST", body: { name: c.name || (c.type + " · " + (c.label || "")), card: c } })).then(function (j) {
+          if (j.ok) { c.saved = true; persist(); render(); toast(T("save") + " ✓", "ok"); refreshCards(); } else toast(j.error || T("err_generic"), "err");
+        });
+      } else if (a === "decode") {
+        runBtn(btn, "…", api("/api/decode", { method: "POST", body: { card: c } })).then(function (j) {
+          if (j.ok && j.card) { update(j.card); toast(T("decode") + " ✓", "ok"); } else toast((j.result && j.result.error) || j.error || T("err_generic"), "err");
+        });
+      }
+    }
+    function saveAll() {
+      var pend = list.filter(function (c) { return !c.saved; });
+      if (!pend.length) { toast(T("session_none"), ""); return; }
+      var n = 0;
+      (function next(i) {
+        if (i >= pend.length) { render(); toast(T("saved_n").replace("%n", n), "ok"); refreshCards(); return; }
+        api("/api/cards", { method: "POST", body: { name: pend[i].name || (pend[i].type + " · " + (pend[i].label || "")), card: pend[i] } })
+          .then(function (j) { if (j.ok) { pend[i].saved = true; n++; } persist(); next(i + 1); }).catch(function () { next(i + 1); });
+      })(0);
+    }
+    function exportJson() {
+      try {
+        var blob = new Blob([JSON.stringify({ app: "proxlafy", kind: "scan-session", exported: Date.now() / 1000, count: list.length, cards: list }, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob), a = document.createElement("a");
+        a.href = url; a.download = "proxlafy-sesion-" + new Date().toISOString().slice(0, 10) + ".json";
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        toast(T("exported_ok") + " (" + list.length + ")", "ok");
+      } catch (e) { toast(T("err_generic"), "err"); }
+    }
+    if ($id("session-saveall")) $id("session-saveall").onclick = saveAll;
+    if ($id("session-export")) $id("session-export").onclick = exportJson;
+    if ($id("session-clear")) $id("session-clear").onclick = function () { if (confirm(T("clear_confirm"))) clear(); };
+    return { add: add, update: update, render: render };
+  })();
 
   // ------------------------------------------------ device status
   function loadDevice() {

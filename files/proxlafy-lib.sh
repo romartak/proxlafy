@@ -78,6 +78,26 @@ proxlafy_setup_hotspot() {
   fi
 }
 
+# Makes the network resilient so updates don't fail with a false "no internet":
+#  - reliable public DNS via NetworkManager (many home routers hand out broken DNS)
+#  - prefer IPv4 (routers advertise IPv6 with no working route, which hangs curl/git)
+# Idempotent; safe to run again. · Idempotente; se puede repetir.
+proxlafy_harden_dns() {
+  mkdir -p /etc/NetworkManager/conf.d
+  printf '%s\n' \
+    '# Proxlafy: reliable public DNS so a broken router DNS does not cut off updates' \
+    '[global-dns-domain-*]' \
+    'servers=1.1.1.1,8.8.8.8,9.9.9.9' > /etc/NetworkManager/conf.d/proxlafy-dns.conf
+  if [ -f /etc/gai.conf ]; then
+    grep -q 'precedence ::ffff:0:0/96' /etc/gai.conf 2>/dev/null || echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf
+  else
+    echo 'precedence ::ffff:0:0/96  100' > /etc/gai.conf
+  fi
+  # if an earlier manual fix locked resolv.conf, unlock it so NetworkManager can manage it again
+  command -v chattr >/dev/null 2>&1 && chattr -i /etc/resolv.conf 2>/dev/null
+  nmcli general reload 2>/dev/null || systemctl reload NetworkManager 2>/dev/null || true
+}
+
 # ---------------------------------------------------------------------
 #  Language · Idioma  (en | es)
 #  Order: env PROXLAFY_LANG → proxlafy.conf → system language ($LANG: es* → es) → en

@@ -106,10 +106,20 @@
         <label class="switch"><input type="checkbox" id="scan-continuous"><span class="switch-track"></span><span class="switch-label" data-i18n="scan_continuous">Escaneo continuo</span></label>
       </div>
       <div id="scan-result" class="read-result"></div>
-      <details class="console grow" id="history-box" hidden>
-        <summary class="small muted" data-i18n="history">Historial de lecturas</summary>
-        <div id="history-list" class="history-list"></div>
-      </details>
+
+      <div id="scan-session" class="card scan-session" hidden>
+        <div class="session-head">
+          <h3 data-i18n="session_title">Sesión de escaneo</h3>
+          <span id="session-count" class="pill-count">0</span>
+        </div>
+        <p class="muted small" data-i18n="session_hint">Todo lo que escaneas se junta aquí durante el día. Al final, guarda, decodifica o revisa cada una.</p>
+        <div class="btn-row session-actions">
+          <button id="session-saveall" class="btn btn-ghost sm" data-i18n="save_all">Guardar todas</button>
+          <button id="session-export" class="btn btn-ghost sm" data-i18n="export">Exportar</button>
+          <button id="session-clear" class="btn btn-ghost sm" data-i18n="clear_all">Vaciar</button>
+        </div>
+        <div id="session-list" class="session-list" aria-live="polite"></div>
+      </div>
     </section>
 
     <!-- VIEW: EMIT -->

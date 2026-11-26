@@ -11,6 +11,7 @@
 #    proxlafy hotspot       force the hotspot (auto releases it) · forzar hotspot (auto lo libera)
 #    proxlafy switch        switch to the other lab project (SDR-Kit) · cambiar al otro proyecto (SDR-Kit)
 #    proxlafy labs          list installed lab projects · listar proyectos instalados
+#    proxlafy net-fix       fix DNS / IPv4 so updates work · arreglar DNS / IPv4 para actualizar
 #    proxlafy config        edit proxlafy.conf · editar la configuración
 #    proxlafy version       installed version · versión instalada
 #  Spanish aliases work too · Los alias en español también funcionan.
@@ -73,13 +74,18 @@ case "$cmd" in
   labs|proyectos)
     [ -x /usr/local/sbin/labswitch ] && exec /usr/local/sbin/labswitch status || { L "labswitch not installed." "labswitch no está instalado."; exit 1; }
     ;;
+  net-fix|red|arreglar-red)
+    need_root "net-fix"
+    proxlafy_harden_dns && L "✔ Network hardened: reliable DNS + prefer IPv4." "✔ Red reforzada: DNS confiable + preferir IPv4."
+    L "Test it:  curl -4 -I https://github.com" "Pruébalo:  curl -4 -I https://github.com"
+    ;;
   version|versión|-v|--version)
     echo "proxlafy $(cat "$OPT/VERSION" 2>/dev/null || echo '?')"
     repo="${PROXLAFY_REPO:-$(git -C /opt/proxlafy-src remote get-url origin 2>/dev/null)}"
     echo "repo: ${repo:-$PROXLAFY_DEFAULT_REPO}  ·  branch: ${PROXLAFY_BRANCH:-main}"
     ;;
   help|ayuda|-h|--help)
-    sed -n '3,16p' "$OPT/proxlafy-cli.sh" | sed 's/^#\s\?//'
+    sed -n '3,17p' "$OPT/proxlafy-cli.sh" | sed 's/^#\s\?//'
     ;;
   *)
     L "Unknown command: $cmd  (try: proxlafy help)" "Comando desconocido: $cmd  (prueba: proxlafy ayuda)"; exit 1

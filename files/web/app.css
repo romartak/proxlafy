@@ -465,3 +465,51 @@ body.comparing .tag { cursor: copy; }
 .cmp-table td { width: 33%; font-family: var(--mono); font-size: .82rem; }
 .cmp-table .cmp-diff td { color: var(--accent); }
 .cmp-table .cmp-diff th { color: var(--text); }
+
+/* ---------- v0.9.0: honest button states (busy → done ✓ / failed ✗) ---------- */
+.btn-spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor;
+  border-right-color: transparent; border-radius: 50%; vertical-align: -2px; margin-right: 7px; }
+.btn.busy { opacity: .92; cursor: progress; }
+.btn.done { background: var(--ok) !important; color: #06110c !important; border-color: transparent !important; }
+.btn.failed { background: var(--danger) !important; color: #fff !important; border-color: transparent !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn-spin { animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn.done, .btn.failed { animation: btn-pop .42s var(--ease-out); }
+  @keyframes btn-pop { 0% { scale: .92; } 55% { scale: 1.05; } 100% { scale: 1; } }
+}
+
+/* ---------- v0.9.0: more motion ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* detected-card panel rises in */
+  .read-result > .card { animation: card-in .4s var(--ease-out) backwards; }
+  @keyframes card-in { from { opacity: 0; translate: 0 12px; scale: .99; } }
+  /* session rows arrive, newest first */
+  .session-row.fresh { animation: row-in .34s var(--ease-out) backwards; }
+  @keyframes row-in { from { opacity: 0; translate: -10px 0; } }
+  /* save confirmation pulse on a control */
+  .pulse-ok { animation: pulse-ok .6s var(--ease-out); }
+  @keyframes pulse-ok { 0% { box-shadow: 0 0 0 0 rgba(39,197,143,.5); } 100% { box-shadow: 0 0 0 14px rgba(39,197,143,0); } }
+  /* count badge bump when it changes */
+  .pill-count.bump { animation: count-bump .32s var(--ease-out); }
+  @keyframes count-bump { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 1; } }
+}
+
+/* ---------- v0.9.0: scan session ---------- */
+.scan-session { margin-top: 16px; }
+.session-head { display: flex; align-items: center; gap: 10px; }
+.session-head h3 { margin: 0; }
+.pill-count { min-width: 24px; text-align: center; padding: 1px 8px; border-radius: 20px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: .8rem; }
+.session-actions { margin: 10px 0 4px; }
+.session-actions .btn { flex: 1; }
+.session-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.session-row { display: flex; align-items: center; gap: 10px; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; }
+.sr-main { flex: 1; min-width: 0; text-align: left; background: none; border: 0; color: inherit;
+  display: flex; flex-direction: column; gap: 1px; cursor: pointer; padding: 2px 0; }
+.sr-name { font-weight: 600; font-size: .92rem; display: flex; align-items: center; gap: 6px; }
+.sr-sub { color: var(--muted); font-size: .76rem; font-family: var(--mono); }
+.sv-badge { color: var(--ok); font-size: .8rem; }
+.sr-acts { display: flex; gap: 5px; flex: 0 0 auto; }
+.sr-acts .chip-icon { min-height: 34px; padding: 5px 9px; font-size: .9rem; }

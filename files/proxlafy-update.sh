@@ -65,6 +65,10 @@ fi
 
 # ---------------------------------------------------------------- fetch from GitHub
 [ "$MODE" = check ] || [ "$(id -u)" -eq 0 ] || die "Use: sudo proxlafy update" "Usa: sudo proxlafy actualizar"
+# Self-heal the common "no internet" cause (broken router DNS / dead IPv6) before checking.
+if [ "$(id -u)" -eq 0 ] && command -v proxlafy_harden_dns >/dev/null 2>&1; then
+  proxlafy_harden_dns >/dev/null 2>&1 && sleep 2 || true
+fi
 # Prefer IPv4: many home routers hand out IPv6 without a working route, which makes a plain
 # curl hang and look like "no internet". -4 avoids that; if it still fails, there is really no path.
 if ! curl -4 -fsS --max-time 12 -o /dev/null "https://github.com" 2>/dev/null \

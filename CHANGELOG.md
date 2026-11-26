@@ -2,6 +2,28 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.9.0
+
+**Honest button states · Botones con estado real** (your request)
+- Clone, wipe and decode buttons now show a **spinner while running**, then a **✓ (green)** or **✗ (red)** that
+  settles back — nothing stays "stuck" and you always see when it finished.
+- Clonar, limpiar y decodificar muestran un **spinner mientras corren** y luego **✓/✗**; ya nada se queda "pegado".
+
+**Scan session (end-of-day review) · Sesión de escaneo** (your request)
+- The Scan tab now **collects everything you scan through the day** into a reviewable list that survives reloads.
+  Per card: **View** (full detail + actions), **Save**, **Decode**, **Delete**; plus **Save all**, **Export** and
+  **Clear**. · La pestaña Escanear junta todo lo del día en una lista; por tarjeta: Ver, Guardar, Decodificar,
+  Borrar; y Guardar todas / Exportar / Vaciar.
+
+**Network, fixed at the project level · Red, arreglada de raíz** (your request)
+- The installer now sets **reliable public DNS** (via NetworkManager) and **prefers IPv4**, so a home router with
+  broken DNS/IPv6 no longer makes updates fail. `sudo proxlafy update` **self-heals** this before checking, and
+  `sudo proxlafy net-fix` applies it on demand. · El instalador configura **DNS confiable** y **prefiere IPv4**;
+  `proxlafy update` se auto-repara y existe `proxlafy net-fix`.
+
+**More motion · Más animación**
+- Detected-card and session-row entrances, count-badge bump, success pulses — all reduced-motion safe.
+
 ## 0.8.0
 
 **Design & UX polish (web-ui-motion) · Pulido de diseño y UX**

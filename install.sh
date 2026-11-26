@@ -198,6 +198,8 @@ if command -v nmcli >/dev/null 2>&1; then
   systemctl enable proxlafy-netwatch >/dev/null 2>&1
   systemctl restart proxlafy-netwatch
   ok "Network watchdog enabled." "Vigilante de red activado."
+  proxlafy_harden_dns && ok "Reliable DNS set (updates won't stall on a broken router)." \
+                            "DNS confiable configurado (las actualizaciones no se trabarán por un router con DNS roto)."
 else
   warn "NetworkManager not available; hotspot skipped." "NetworkManager no disponible; hotspot omitido."
 fi
