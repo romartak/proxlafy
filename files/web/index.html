@@ -54,14 +54,29 @@
 
   <main id="main" class="main" hidden>
 
-    <!-- Segmented navigation · Navegación -->
+    <!-- Floating bottom tab bar · Barra inferior flotante -->
     <nav class="seg-nav n5" style="--count:5" aria-label="views">
       <span class="seg-pill" aria-hidden="true"></span>
-      <button class="seg-item active" data-view="read" data-i18n="nav_read">Leer</button>
-      <button class="seg-item" data-view="scan" data-i18n="nav_scan">Escanear</button>
-      <button class="seg-item" data-view="emit" data-i18n="nav_emit">Emitir</button>
-      <button class="seg-item" data-view="library" data-i18n="nav_library">Biblioteca</button>
-      <button class="seg-item" data-view="system" data-i18n="nav_system">Sistema</button>
+      <button class="seg-item active" data-view="read" aria-label="Leer">
+        <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><circle cx="8" cy="12" r="2"/><path d="M13 9.5c1.6 1.2 1.6 3.8 0 5M15.6 7.6c2.8 2 2.8 6.8 0 8.8"/></svg>
+        <span class="tl" data-i18n="nav_read">Leer</span>
+      </button>
+      <button class="seg-item" data-view="scan" aria-label="Escanear">
+        <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-3.4-3.4"/></svg>
+        <span class="tl" data-i18n="nav_scan">Escanear</span>
+      </button>
+      <button class="seg-item" data-view="emit" aria-label="Emitir">
+        <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M8.2 8.2c-2.1 2.1-2.1 5.5 0 7.6M15.8 8.2c2.1 2.1 2.1 5.5 0 7.6M5.6 5.6c-3.5 3.5-3.5 9.3 0 12.8M18.4 5.6c3.5 3.5 3.5 9.3 0 12.8"/></svg>
+        <span class="tl" data-i18n="nav_emit">Emitir</span>
+      </button>
+      <button class="seg-item" data-view="library" aria-label="Biblioteca">
+        <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8.5 4.5L12 12 3.5 7.5 12 3z"/><path d="M3.5 12L12 16.5 20.5 12"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg>
+        <span class="tl" data-i18n="nav_library">Biblioteca</span>
+      </button>
+      <button class="seg-item" data-view="system" aria-label="Sistema">
+        <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h7M15 7h5M4 12h3M11 12h9M4 17h9M17 17h3"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="17" r="2"/></svg>
+        <span class="tl" data-i18n="nav_system">Sistema</span>
+      </button>
     </nav>
 
     <!-- VIEW: READ -->

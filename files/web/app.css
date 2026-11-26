@@ -565,11 +565,8 @@ body.comparing .tag { cursor: copy; }
   border-radius: 15px; border-color: var(--glass-brd); box-shadow: 0 14px 34px rgba(0,0,0,.3); }
 
 /* Vaul-style: the page recedes behind an open sheet (transforms only — cheap) */
-#main { transform-origin: top center; }
-@media (prefers-reduced-motion: no-preference) {
-  #main { transition: scale var(--t-panel) var(--ease-drawer), translate var(--t-panel) var(--ease-drawer); }
-}
-body.has-sheet #main { scale: .972; translate: 0 6px; }
+/* (Vaul page-scale removed: a transform on #main would break the fixed bottom tab bar.
+   The sheet still slides up over a dimmed backdrop.) */
 
 /* Emil: tactile press + a little depth on the primary action */
 .btn { transition: scale var(--t-press) var(--ease-out), background var(--t-state) ease, border-color var(--t-state) ease, box-shadow var(--t-hover) ease; }
@@ -638,3 +635,46 @@ body::before {
 .read-result .btn-row .btn[data-a="save"] { grid-column: 1 / -1; }
 .std-mode-head { flex-wrap: wrap; }
 .std-mode-head > * { min-width: 0; }
+
+/* ======================================================================
+   v0.16.0 · REDESIGN — floating bottom tab bar (iOS-26 style) + polish
+   Research: frosted glass reserved for nav/accents; data cards stay solid.
+   ====================================================================== */
+body { padding-bottom: calc(env(safe-area-inset-bottom) + 94px); }
+
+.seg-nav {
+  position: fixed; left: 50%; translate: -50% 0; bottom: calc(env(safe-area-inset-bottom) + 10px);
+  width: min(var(--maxw), calc(100vw - 24px)); z-index: 60; margin: 0; padding: 7px;
+  display: grid; grid-template-columns: repeat(var(--count), 1fr); gap: 0;
+  background: var(--glass-bg); -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px);
+  border: 1px solid var(--glass-brd); border-radius: 24px; box-shadow: 0 16px 42px rgba(0,0,0,.46), inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent);
+}
+.seg-pill {
+  position: absolute; top: 7px; left: 7px; height: calc(100% - 14px); width: calc((100% - 14px) / var(--count));
+  border-radius: 16px; translate: calc(var(--active, 0) * 100%) 0; transition: translate var(--t-panel) var(--ease-drawer);
+  background: color-mix(in srgb, var(--accent) 16%, var(--card-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+}
+.seg-item {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; min-height: 52px; padding: 6px 2px; border: 0; background: transparent; color: var(--muted);
+  font-size: .64rem; font-weight: 600; letter-spacing: .1px; cursor: pointer; border-radius: 16px;
+  transition: color var(--t-state) ease, scale var(--t-press) ease;
+}
+.seg-item .ti { width: 22px; height: 22px; }
+.seg-item .tl { white-space: nowrap; }
+.seg-item.active { color: var(--accent); }
+.seg-item:active { scale: .92; }
+@media (prefers-reduced-motion: no-preference) {
+  .seg-item.active .ti { animation: tab-pop .3s var(--ease-out); }
+  @keyframes tab-pop { 0% { scale: .82; } 55% { scale: 1.14; } 100% { scale: 1; } }
+}
+
+/* Cards: solid and readable (glass stays on nav/sheets/toasts), with a hairline top highlight for depth */
+.card { background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent) inset, var(--shadow-sm); }
+.card-detail, .read-result > .card { background: linear-gradient(180deg, color-mix(in srgb, var(--card-2) 60%, var(--card)), var(--card)); }
+
+/* Topbar: slimmer now that navigation lives at the bottom */
+.topbar { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: 10px; }
+.brand-name { letter-spacing: -.3px; }
+.seg-nav.n5 .seg-item { font-size: .64rem; padding: 6px 2px; letter-spacing: .1px; }

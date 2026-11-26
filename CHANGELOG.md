@@ -2,6 +2,18 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.16.0
+
+**Redesign · Rediseño** (new GUI)
+- **Floating bottom tab bar** (iOS-26 style): a frosted glass capsule with crisp **icons + labels** and a gliding
+  amber indicator — one-handed, thumb-friendly, with safe-area insets. The top bar is now slim (just brand + actions).
+- **Barra inferior flotante** tipo iOS: cápsula de vidrio esmerilado con **íconos + texto** e indicador ámbar que
+  se desliza; cómoda con una mano. La barra superior quedó más delgada.
+- Research-guided (sources below): **glass reserved for navigation/accents, data cards stay solid and readable**,
+  each card gets a subtle top highlight for depth. The whole thing is still offline, fast and reduced-motion safe.
+- Investigado: el vidrio se reserva a la navegación/acentos y las **tarjetas quedan sólidas y legibles**. Todo
+  sigue offline, rápido y respetando "reduce motion". 0 desbordes verificados; 39 botones probados, 0 errores.
+
 ## 0.15.0
 
 **Fix: action buttons overflowed and collided · Botones que se desbordaban y se encimaban** (your report)
