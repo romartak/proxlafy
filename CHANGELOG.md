@@ -2,6 +2,21 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.11.0
+
+**Faster & smoother · Más rápido y fluido**
+- The panel now **pauses polling when the screen/tab is hidden** and catches up instantly when you return —
+  big CPU/battery saving on the Pi and the phone. Heavy views **re-render only when their data changes**, and
+  static assets are **cached briefly** so opening the panel is quicker.
+- El panel **pausa el sondeo cuando la pantalla está apagada** y se pone al día al volver; las vistas pesadas
+  se **redibujan solo si cambian**, y los archivos estáticos se **cachean** para abrir más rápido.
+
+**More motion · Más animación**
+- Feasibility bars **fill up from zero**, capability chips arrive in order, the verdict badge pops, cards lift
+  gently on hover — all transform/opacity only and reduced-motion safe. (Plus the animated login from 0.10.0.)
+- Las barras de viabilidad **se llenan**, los chips entran en orden, el veredicto hace "pop" y las tarjetas se
+  elevan al pasar el cursor; todo con `transform`/`opacity` y respetando "reduce motion".
+
 ## 0.10.0
 
 **Accurate identification · Identificación correcta** (your bug report)

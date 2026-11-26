@@ -369,6 +369,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", MIME.get(ext, "application/octet-stream"))
         self.send_header("Content-Length", str(len(data)))
+        # Cache static assets briefly so a phone doesn't re-download CSS/JS/icons on every open;
+        # keep HTML/manifest fresh so an update shows up right away.
+        self.send_header("Cache-Control", "no-cache" if ext in (".html", ".webmanifest") else "public, max-age=60")
         self.end_headers()
         self.wfile.write(data)
 

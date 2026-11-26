@@ -117,8 +117,14 @@
       if (s.role === null && !s.auth_open) { showLogin(); return; }
       showMain();
       $id("logout").hidden = s.auth_open;
-      renderDevice(s); renderSimbar(); renderSystem(s);
-      if (state.view === "emit") renderEmit();
+      renderDevice(s); renderSimbar();
+      // Re-render the heavier views only when something they show actually changed (saves CPU on the Zero 2 W).
+      var sig = [s.connected, s.simulating && s.simulating.id, s.pending_sim && s.pending_sim.id, s.version, s.count, s.role].join("|");
+      if (sig !== state._statusSig) {
+        state._statusSig = sig;
+        renderSystem(s);
+        if (state.view === "emit") renderEmit();
+      }
     }).catch(function () {});
   }
   function renderDevice(s) {
@@ -834,17 +840,29 @@
   // ------------------------------------------------ continuous scan
   var scanTimer = null;
   $id("scan-continuous").onchange = function () {
-    if (this.checked) { scanTimer = setInterval(function () { if (state.view === "scan" && !state.sim && !$id("scan-btn").disabled) $id("scan-btn").click(); }, 1700); }
+    if (this.checked) { scanTimer = setInterval(function () { if (!document.hidden && state.view === "scan" && !state.sim && !$id("scan-btn").disabled) $id("scan-btn").click(); }, 1700); }
     else { clearInterval(scanTimer); scanTimer = null; }
   };
 
   function renderAll() { renderRead(state.lastRead); if (state.lastScan) renderScan(state.lastScan); renderLibrary(); if (state.standalone) renderStandalone(); if (state.view === "emit") renderEmit(); }
 
-  // ------------------------------------------------ boot
+  // ------------------------------------------------ boot + smart polling
   function boot() { refreshStatus().then(refreshCards).then(refreshLog); }
   applyI18n(); boot();
-  setInterval(refreshStatus, 2500);
-  setInterval(refreshLog, 1500);
+  // Poll only while the panel is visible — pausing when the phone screen is off or the tab is hidden
+  // saves a lot of CPU/battery on the Pi and the phone, and makes the UI feel snappier when you return.
+  var pollS = null, pollL = null;
+  function startPolling() {
+    stopPolling();
+    pollS = setInterval(function () { if (!document.hidden) refreshStatus(); }, 3000);
+    pollL = setInterval(function () { if (!document.hidden) refreshLog(); }, 2000);
+  }
+  function stopPolling() { clearInterval(pollS); clearInterval(pollL); pollS = pollL = null; }
+  startPolling();
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { stopPolling(); }
+    else { startPolling(); refreshStatus(); refreshLog(); }   // catch up immediately on return
+  });
 
   // ------------------------------------------------ self-update from the panel
   (function () {
