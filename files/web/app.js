@@ -864,6 +864,17 @@
     else { startPolling(); refreshStatus(); refreshLog(); }   // catch up immediately on return
   });
 
+  // Vaul-style depth: scale the page back whenever any bottom sheet is open
+  (function () {
+    var sheets = document.querySelectorAll("dialog.sheet");
+    function sync() {
+      var any = false;
+      sheets.forEach(function (d) { if (d.open) any = true; });
+      document.body.classList.toggle("has-sheet", any);
+    }
+    sheets.forEach(function (d) { new MutationObserver(sync).observe(d, { attributes: true, attributeFilter: ["open"] }); });
+  })();
+
   // ------------------------------------------------ self-update from the panel
   (function () {
     var checkBtn = $id("btn-update-check"), applyBtn = $id("btn-update-apply");

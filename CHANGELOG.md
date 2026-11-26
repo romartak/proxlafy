@@ -2,6 +2,17 @@
 
 All notable changes to Proxlafy. · Cambios importantes de Proxlafy.
 
+## 0.12.0
+
+**Apple / Emil-Kowalski design pass · Pulido estilo Apple / Emil Kowalski**
+- **Frosted-glass** topbar, nav, bottom sheets and toasts (static blur — rendered on the phone, so it stays fast).
+- **Vaul-style sheets**: the page gently **scales back** when a bottom sheet opens, for real depth.
+- **Tactile press** on buttons, a soft glow on the primary action, **Sonner-style** toast (scale-in).
+- Motion follows Emil Kowalski's rules: **ease-out by default, under 300 ms** (drawers use his drawer easing),
+  subtle springs, and everything still respects reduced-motion.
+- Vidrio esmerilado en barra/nav/hojas/toasts, el fondo se **encoge** al abrir una hoja (estilo Vaul), press
+  táctil y toast estilo Sonner; todo con ease-out <300 ms y respetando "reduce motion".
+
 ## 0.11.0
 
 **Faster & smoother · Más rápido y fluido**
